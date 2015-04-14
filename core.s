@@ -1,20 +1,23 @@
-*************************************
-* // XXXXXXX.PRG                 // *
-*************************************
-* // Intro Code version 0.38     // *
-* // Original code :             // *
-* // Gfx logo :                  // *
-* // Gfx font :                  // *
-* // Music    :                  // *
-* // Release date : xx/xx/2011	 // *
-* // Update date  : xx/xx/2011	 // *
-*************************************
-  OPT c+ ; Case sensitivity on      *
-  OPT d- ; Debug off                *
-  OPT o- ; All optimisations off    *
-  OPT w- ; Warnings off             *
-  OPT x- ; Extended debug off       *
-*************************************
+***************************************
+* // XXXXXXX.PRG                   // *
+***************************************
+* // Asm Intro Code Atari ST v0.39 // *
+* // by Zorro 2/NoExtra (06/04/11) // *
+* // http://www.noextra-team.com/  // *
+***************************************
+* // Original code :               // *
+* // Gfx logo      :               // *
+* // Gfx font      :               // *
+* // Music         :               // *
+* // Release date  : xx/xx/2011    // *
+* // Update date   : xx/xx/2011    // *
+***************************************
+  OPT c+ ; Case sensitivity on        *
+  OPT d- ; Debug off                  *
+  OPT o- ; All optimisations off      *
+  OPT w- ; Warnings off               *
+  OPT x- ; Extended debug off         *
+***************************************
 
 	SECTION	TEXT
 
@@ -26,7 +29,7 @@ PATTERN          equ $00010001 ; See the screen plan               *
 SEEMYVBL         equ 0         ; See CPU used if you press ALT key *
 ERROR_SYS        equ 0	       ; Manage Errors System              *
 FADE_INTRO       equ 1	       ; Fade White to black palette       *
-*------------------------------------------------------------------*
+********************************************************************
 * Remarque : 0 = I use it / 1 = no need !                          *
 ********************************************************************
 
@@ -59,9 +62,7 @@ Begin:
 	move.l	d0,Save_stack
 mode_super_yet:
 
-	IFEQ	ERROR_SYS
-	bsr	SAVE_ERROR
-	ENDC
+	bsr	wait_for_drive               ; Stop floppy driver
 
 	bsr	clear_bss                    ; Clean BSS stack
 	
@@ -70,10 +71,6 @@ mode_super_yet:
 	bsr	Save_and_init_st             ; Save system parameters
 
 	jsr	Multi_boot                   ; Multi Atari Boot code.
-
-	IFEQ	FADE_INTRO
-	bsr	fadein                       ; Fading white to black
-	ENDC
 
 	bsr	Init                         ; Inits
 
@@ -87,8 +84,7 @@ default_loop:
 	clr.b	$ffff8240.w
 	ENDC
 
-* Put your code here !
-* >
+* < Put your code here >
 
 
 * <
@@ -125,64 +121,17 @@ SORTIE:
 	clr.w	-(sp)                      ; Pterm()
 	trap	#1                         ; EXIT program
 
-	IFEQ	ERROR_SYS
-************************************************
-*                                              *
-*               Error Routines                 *
-*                                              *
-************************************************
-BUS_ERROR:
-	move.w	#$0F00,$ffff8240.w
-	move.l	#$20425553,512.w
-	move.l	10(a7),516.w
-	move.l	#SORTIE,2(a7)
-	move.w	#9984,(a7)
-	rte
-
-ADRESS_ERROR:
-	move.w	#$0FF0,$ffff8240.w
-	move.l	#$20414452,512.w
-	move.l	10(a7),516.w
-	move.l	#SORTIE,2(a7)
-	move.w	#9984,(a7)
-	rte
-
-DIV0:
-	move.w	#$0F0F,$ffff8240.w
-	move.l	#$44495630,512.w
-	move.l	2(a7),516.w
-	move.l	#SORTIE,2(a7)
-	move.w	#9984,(a7)
-	rte
-
-SAVE_ERROR:
-	lea 	OLD_ERROR,a0
-	move.l	8.w,(a0)+
-	move.l	12.w,(a0)+
-	move.l	20.w,(a0)+
-	move.l	#BUS_ERROR,8.w
-	move.l	#ADRESS_ERROR,12.w
-	move.l	#DIV0,20.w
-	rts
-
-RESTORE_ERROR:
-	lea 	OLD_ERROR,a0
-	move.l	(a0)+,8.w
-	move.l	(a0)+,12.w
-	move.l	(a0)+,20.w
-	rts
-
-OLD_ERROR:
-	dcb.w	6,$0
-	even
-	ENDC
-
 ************************************************
 *                                              *
 *               Init Routines                  *
 *                                              *
 ************************************************
 Init:	movem.l	d0-d7/a0-a6,-(a7)
+
+	IFEQ	FADE_INTRO
+	bsr	fadein                       ; Fading white to black
+	clr.w	$ffff8240.w
+	ENDC
 
 	jsr	MUSIC+0                      ; Init music
 
@@ -234,12 +183,12 @@ Init_screens:
 	clr.b	d1                         ;
 	move.l	d1,(a0)                  ;
 
-	move.b  d0,$ffff820d.w           ; Put physique screen
+	move.b  d0,$ffff820d.w           ; Put physical screen
 	move    d0,-(sp)                 ;
 	move.b  (sp)+,d0                 ;
 	move.l  d0,$ffff8200.w           ;
 
-	move.l	physique(pc),a0          ; Put PATTERN
+	move.l	physique(pc),a0          ; Put PATTERN on screens
 	move.l	physique+4(pc),a1        ;
 	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
 	move.l  #PATTERN,(a0)+           ;
@@ -453,7 +402,11 @@ Restore_st:
 	move.l    #$8000000,(a0)
 	move.l    #$9000000,(a0)
 	move.l    #$a000000,(a0)
-	
+
+	IFEQ	ERROR_SYS
+	bsr	OUTPUT_TRACE_ERROR
+	ENDC
+
 	lea	Save_all,a0                  ; Restore adresses parameters
 	move.b	(a0)+,$fffffa03.w
 	move.b	(a0)+,$fffffa07.w
@@ -542,6 +495,12 @@ clear_bss:
 	blt.s	.loop
 	rts
 
+wait_for_drive:
+	move.w	$ffff8604.w,d0
+	btst	#7,d0
+	bne.s	wait_for_drive
+	rts
+
 	IFEQ	FADE_INTRO
 ************************************************
 *           FADING WHITE TO BLACK              *
@@ -600,8 +559,7 @@ MUSIC:
 
 bss_start:
 
-* Full data here :
-* >
+* < Full data here >
 
 
 * <
@@ -630,13 +588,100 @@ bss_end:
 
 	SECTION	TEXT
 
-; Multi Atari Boot code.
-; If you have done an ST demo, use that boot to run it on these machines:
-;
-; ST, STe, Mega-ST,TT,Falcon,CT60
-;
-; More info:
-; http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html
+	IFEQ	ERROR_SYS
+************************************************
+*                                              *
+*               Error Routines                 *
+*                Dbug 2/Next                   *
+*                                              *
+************************************************
+INPUT_TRACE_ERROR:
+	lea $8.w,a0                       ; Adresse de base des vecteurs (Erreur de Bus)
+	lea liste_vecteurs,a1             ;
+	moveq #10-1,d0                    ; On détourne toutes les erreur possibles...
+.b_sauve_exceptions:
+	move.l (a1)+,d1                   ; Adresse de la nouvelle routine
+	move.l (a0)+,-4(a1)               ; Sauve l'ancienne
+	move.l d1,-4(a0)                  ; Installe la mienne
+	dbra d0,.b_sauve_exceptions
+	rts
+
+OUTPUT_TRACE_ERROR:
+	lea $8.w,a0
+	lea liste_vecteurs,a1
+	moveq #10-1,d0
+.restaure_illegal:
+	move.l (a1)+,(a0)+
+	dbra d0,.restaure_illegal
+	rts
+
+routine_bus:
+	move.w #$070,d0
+	bra.s execute_detournement
+routine_adresse:
+	move.w #$007,d0
+	bra.s execute_detournement
+routine_illegal:
+	move.w #$700,d0
+	bra.s execute_detournement
+routine_div:
+	move.w #$770,d0
+	bra.s execute_detournement
+routine_chk:
+	move.w #$077,d0
+	bra.s execute_detournement
+routine_trapv:
+	move.w #$777,d0
+	bra.s execute_detournement
+routine_viole:
+	move.w #$707,d0
+	bra.s execute_detournement
+routine_trace:
+	move.w #$333,d0
+	bra.s execute_detournement
+routine_line_a:
+	move.w #$740,d0
+	bra.s execute_detournement
+routine_line_f:
+	move.w #$474,d0
+execute_detournement:
+	move.w #$2700,sr                  ; Deux erreurs à suivre... non mais !
+
+	move.w	#$0FF,d1
+.loop:
+	move.w d0,$ffff8240.w             ; Effet raster
+	move.w #0,$ffff8240.w
+	cmp.b #$3b,$fffffc02.w
+	dbra d1,.loop
+
+	pea SORTIE                        ; Put the return adress
+	move.w #$2700,-(sp)               ; J'espère !!!...
+	addq.l #2,2(sp)                   ; 24/6
+	rte                               ; 20/5 => Total hors tempo = 78-> 80/20 nops
+
+liste_vecteurs:
+	dc.l routine_bus	Vert
+	dc.l routine_adresse	Bleu
+	dc.l routine_illegal	Rouge
+	dc.l routine_div	Jaune
+	dc.l routine_chk	Ciel
+	dc.l routine_trapv	Blanc
+	dc.l routine_viole	Violet
+	dc.l routine_trace	Gris
+	dc.l routine_line_a	Orange
+	dc.l routine_line_f	Vert pale
+	even
+	ENDC
+
+***************************************************************************
+* Multi Atari Boot code.                                                  *
+* If you have done an ST demo, use that boot to run it on these machines: *
+*                                                                         *
+* ST, STe, Mega-ST,TT,Falcon,CT60                                         *
+*                                                                         *
+* More info:                                                              *
+* http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html        *
+***************************************************************************
 
 Multi_boot:
 	sf $1fe.w
@@ -746,6 +791,9 @@ noCookie:
 	clr.b $ffff8260.w
 
 letsGo:
+	IFEQ	ERROR_SYS
+	bsr	INPUT_TRACE_ERROR
+	ENDC
 	rts
 
 vga50:
