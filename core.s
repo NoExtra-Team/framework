@@ -1,6 +1,6 @@
 *************************************
 * // XXXXXXX.PRG                 // *
-* // Intro Code version 0.36     // *
+* // Intro Code version 0.37     // *
 * // Original code :             // *
 * // Gfx logo :                  // *
 * // Gfx font :                  // *
@@ -19,7 +19,8 @@
 
 ********************************************************************
 BOTTOM_BORDER    equ 1         ; Use the bottom overscan           *
-TOPBOTTOM_BORDER equ 0         ; Use the top and bottom overscan   *
+TOPBOTTOM_BORDER equ 1         ; Use the top and bottom overscan   *
+NO_BORDER        equ 0         ; Use a standard screen             *
 PATTERN          equ $00010001 ; See the screen plan               *
 SEEMYVBL         equ 0         ; See CPU used if you press ALT key *
 ERROR_SYS        equ 0	       ; Manage Errors System              *
@@ -89,10 +90,16 @@ default_loop:
 
 * <
 
-	move.l  Zorro_scr1,d0            ; Swapping screens
-	move.l  Zorro_scr2,Zorro_scr1 
-	move.l  d0,Zorro_scr2
-	lsr.w   #8,d0 
+	lea     physique(pc),a0          ; Swapping screens
+;	move.l  (a0),d0
+;	move.l  4(a0),(a0)
+;	move.l  d0,4(a0)
+	move.l	(a0),d0      ;
+	move.l	4(a0),(a0)+  ;
+	move.l	d0,(a0)      ;
+	move.b  d0,$ffff820d.w
+	move    d0,-(sp)
+	move.b  (sp)+,d0
 	move.l  d0,$ffff8200.w
   	
 	IFEQ	SEEMYVBL
@@ -195,34 +202,54 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 *              Screen Routines                 *
 *                                              *
 ************************************************
+ IFEQ	BOTTOM_BORDER
+SIZE_OF_SCREEN equ 160*250
+ ENDC
+ IFEQ	TOPBOTTOM_BORDER
+SIZE_OF_SCREEN equ 160*300
+ ENDC
+ IFEQ	NO_BORDER
+SIZE_OF_SCREEN equ 160*200
+ ENDC
+
+TOTAL_NUMBER_SCREEN equ 2
+TOTAL_SIZEOF_SCREEN equ TOTAL_NUMBER_SCREEN*SIZE_OF_SCREEN
+
 Init_screens:
 	movem.l	d0-d7/a0-a6,-(a7)
 
-	move.l	#Zorro_screen1,d0        ; Init screen #1
-	add.w	#$ff,d0
-	sf	d0
-	move.l	d0,Zorro_scr1
+	move.l	#(TOTAL_SIZEOF_SCREEN+256),-(sp)   ; Malloc()
+	move.w	#72,-(sp)                ; Screen memory
+	trap	#1                         ;
+	addq.l	#6,sp                    ;
+	tst.l	d0                         ;
+	beq	SORTIE                       ; Test memory
 
-	move.l	#Zorro_screen2,d0        ; Init screen #2
-	add.w	#$ff,d0
-	sf	d0
-	move.l	d0,Zorro_scr2
-	
-	movea.l	Zorro_scr1,a6            ; Filed screen #1 with the pattern
-	move.w	#Zorro_screen1_len/4-1,d1
-	move.l	#PATTERN,(a6)+
-	dbra	d1,*-6
+	move.l	d0,d1
+	add.w	#256,d0                    ; Make screens
+	clr.b	d0                         ; Even by 256 bytes
+	lea.l	physique(pc),a0            ;
+	move.l	d0,(a0)+                 ;
+	add.l	#SIZE_OF_SCREEN,d1         ;
+	clr.b	d1                         ;
+	move.l	d1,(a0)                  ;
 
-	movea.l	Zorro_scr2,a6            ; Filed screen #2 with the pattern
-	move.w	#Zorro_screen2_len/4-1,d1
-	move.l	#PATTERN,(a6)+
-	dbra	d1,*-6
-	
+	move.b  d0,$ffff820d.w           ; Put physique screen
+	move    d0,-(sp)                 ;
+	move.b  (sp)+,d0                 ;
+	move.l  d0,$ffff8200.w           ;
+
+	move.l	physique(pc),a0          ; Put PATTERN
+	move.l	physique+4(pc),a1        ;
+	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
+	move.l  #PATTERN,(a0)+           ;
+	move.l  #PATTERN,(a1)+           ;
+	dbf	    d7,*-12                  ;
+
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
-Zorro_scr1:	dc.l	0                ; Screen #1
-Zorro_scr2:	dc.l	0                ; Screen #2
+physique:	ds.l 2                   ; 2 écrans déclarés
 
 ************************************************
 *                                              *
@@ -251,7 +278,7 @@ Vbl:
 	;move.l	(a7)+,a0
 	ENDC
 
-	jsr 	(MUSIC+8)			; call music
+	jsr 	(MUSIC+8)                  ; Play music
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rte
@@ -392,14 +419,6 @@ Save_and_init_st:
 	trap	#14
 	addq.l	#2,sp
 	move.l	d0,Old_Screen+2
-
-	move.l	Zorro_scr1(pc),d0        ; Put the new screen
-	move.b	d0,d1
-	lsr.w	#8,d0
-	move.b	d0,$ffff8203.w
-	swap	d0
-	move.b	d0,$ffff8201.w
-	move.b	d1,$ffff820d.w
 
 	bsr	hide_mouse                   ; Keyboard and mouse
 	bsr	flush
@@ -613,30 +632,6 @@ Save_rest:
 	ds.l	1	* Output Bip Bop
 Palette:
 	ds.w	16	* Palette
-
-Zorro_screen1:	
-	ds.b	256
-start1:	
-	ds.b	160*200
-	IFEQ	BOTTOM_BORDER
-	ds.b	160*50
-	ENDC
-	IFEQ	TOPBOTTOM_BORDER
-	ds.b	160*90
-	ENDC
-Zorro_screen1_len:	equ	*-start1
-
-Zorro_screen2:	
-	ds.b	256
-start2:	
-	ds.b	160*200
-	IFEQ	BOTTOM_BORDER
-	ds.b	160*50
-	ENDC
-	IFEQ	TOPBOTTOM_BORDER
-	ds.b	160*90
-	ENDC
-Zorro_screen2_len:	equ	*-start2
 
 bss_end:
 
