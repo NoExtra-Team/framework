@@ -1,6 +1,7 @@
 *************************************
 * // XXXXXXX.PRG                 // *
-* // Intro Code version 0.37     // *
+*************************************
+* // Intro Code version 0.38     // *
 * // Original code :             // *
 * // Gfx logo :                  // *
 * // Gfx font :                  // *
@@ -30,9 +31,9 @@ FADE_INTRO       equ 1	       ; Fade White to black palette       *
 ********************************************************************
 
 Begin:
-	move    SR,d0 
-	btst    #13,d0
-	bne.s   mode_super_yet
+	move    SR,d0                    ; Test supervisor mode
+	btst    #13,d0                   ; Specialy for relocation
+	bne.s   mode_super_yet           ; programs
 	move.l  4(sp),a5                 ; Address to basepage
 	move.l  $0c(a5),d0               ; Length of TEXT segment
 	add.l   $14(a5),d0               ; Length of DATA segment
@@ -51,7 +52,7 @@ Begin:
 	trap    #1                       ;
 	lea 	12(sp),sp                  ;
 	
-	clr.l	-(sp)                      ; Supervisor Mode
+	clr.l	-(sp)                      ; Supervisor mode
 	move.w	#32,-(sp)
 	trap	#1
 	addq.l	#6,sp
@@ -68,12 +69,14 @@ mode_super_yet:
 
 	bsr	Save_and_init_st             ; Save system parameters
 
+	jsr	Multi_boot                   ; Multi Atari Boot code.
+
 	IFEQ	FADE_INTRO
 	bsr	fadein                       ; Fading white to black
 	ENDC
 
 	bsr	Init                         ; Inits
-	
+
 ******************************************************************************
 
 default_loop:
@@ -91,12 +94,9 @@ default_loop:
 * <
 
 	lea     physique(pc),a0          ; Swapping screens
-;	move.l  (a0),d0
-;	move.l  4(a0),(a0)
-;	move.l  d0,4(a0)
-	move.l	(a0),d0      ;
-	move.l	4(a0),(a0)+  ;
-	move.l	d0,(a0)      ;
+	move.l	(a0),d0
+	move.l	4(a0),(a0)+
+	move.l	d0,(a0)
 	move.b  d0,$ffff820d.w
 	move    d0,-(sp)
 	move.b  (sp)+,d0
@@ -115,9 +115,9 @@ next_key:
 ******************************************************************************
 
 SORTIE:
-	bsr	Restore_st
+	bsr	Restore_st                   ; Restore all registers
 
-	move.l	Save_stack,-(sp)         ; Restore Mode Supervisor
+	move.l	Save_stack,-(sp)         ; Restore user Mode
 	move.w	#32,-(sp)
 	trap	#1
 	addq.l	#6,sp
@@ -173,7 +173,7 @@ RESTORE_ERROR:
 	rts
 
 OLD_ERROR:
-	dcb.w     6,$0
+	dcb.w	6,$0
 	even
 	ENDC
 
@@ -190,9 +190,9 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 	move.l	a0,$70.w
 
 	lea	Pal(pc),a0                   ; Put palette
-	lea	$ffff8240.w,a1
-	movem.l	(a0),d0-d7
-	movem.l	d0-d7,(a1)
+	lea	$ffff8240.w,a1               ;
+	movem.l	(a0),d0-d7               ;
+	movem.l	d0-d7,(a1)               ;
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
@@ -249,7 +249,7 @@ Init_screens:
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
-physique:	ds.l 2                   ; 2 écrans déclarés
+physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
 
 ************************************************
 *                                              *
@@ -300,7 +300,7 @@ Wait_vbl:                          ; Test Synchronisation
 ***************************************************************
 Over_rout:
 	sf	$fffffa21.w                  ; Stop Timer B
-	sf	$fffffa1b.w
+	sf	$fffffa1b.w                  ;
 	dcb.w	95,$4e71                   ; 95 nops	Wait line end
 	sf	$ffff820a.w                  ; Modif Frequency 60 Hz !
 	dcb.w	28,$4e71                   ; 28 nops	Wait line end
@@ -338,19 +338,19 @@ topbord:
 	move.l	a0,$134.w                ; Timer A vector
 	move.b	#178,(tadr).w            ; Countdown value for timer A
 	move.b	#7,(tacr).w              ; Delay mode, clock divided by 200
-	move.l	(a7)+,a0
+	move.l	(a7)+,a0                 ;
 	bclr.b	#5,(isra).w              ; Clear end of interrupt flag
 	rte
 
 botbord:
-	move	#$2100,sr
-	stop	#$2100			; sync with interrupt
-	clr.b	(tacr).w		; stop timer A
-	dcb.w	78,$4E71		; 78 nops
-	clr.b	(herz).w		; 60 Hz
-	dcb.w	18,$4E71		; 18 nops
-	move.b	#2,(herz).w		; 50 Hz
-	bclr.b	#5,(isra).w
+	move	#$2100,SR                  ;
+	stop	#$2100                     ; sync with interrupt
+	clr.b	(tacr).w                   ; stop timer A
+	dcb.w	78,$4E71                   ; 78 nops
+	clr.b	(herz).w                   ; 60 Hz
+	dcb.w	18,$4E71                   ; 18 nops
+	move.b	#2,(herz).w              ; 50 Hz
+	bclr.b	#5,(isra).w              ;
 	rte
 	ENDC
 
@@ -363,7 +363,7 @@ Save_and_init_st:
 
 	move #$2700,sr
 		
-	lea	Save_all,a0                  ; Save adress parameters
+	lea	Save_all,a0                  ; Save adresses parameters
 	move.b	$fffffa03.w,(a0)+
 	move.b	$fffffa07.w,(a0)+
 	move.b	$fffffa09.w,(a0)+
@@ -383,7 +383,7 @@ Save_and_init_st:
 	move.b	$ffff820a.w,(a0)+
 	move.b	$ffff820d.w,(a0)+
 	
-	lea	Save_rest,a0                  ; Save adress parameters
+	lea	Save_rest,a0                  ; Save adresses parameters
 	move.l	$068.w,(a0)+	
 	move.l	$070.w,(a0)+	
 	move.l	$110.w,(a0)+	
@@ -393,7 +393,7 @@ Save_and_init_st:
 	move.l	$134.w,(a0)+	
 	move.l	$484.w,(a0)+	
 
-	movem.l	$ffff8240.w,d0-d7        ; Save palette system
+	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
 	movem.l	d0-d7,(a0)
 
 	bclr	#3,$fffffa17.w             ; Clear Timers
@@ -408,13 +408,6 @@ Save_and_init_st:
 	addq.l	#2,sp
 	move	d0,Old_Resol+2
 
-	clr	-(sp)
-	move.l	#-1,-(sp)
-	move.l	(sp),-(sp)
-	move	#5,-(sp)
-	trap	#14                        ; Switch to Low Resolution
-	lea	12(sp),sp
-
 	move	#2,-(sp)                   ; Save Screen Address
 	trap	#14
 	addq.l	#2,sp
@@ -427,11 +420,11 @@ Save_and_init_st:
 
 	IFEQ	BOTTOM_BORDER
 	sf	$fffffa21.w                  ; Stop the Timer B
-	sf	$fffffa1b.w
-	lea	Over_rout(pc),a0             ; HBL
-	move.l	a0,$120.w                ; Timer B vector
-	bset	#0,$fffffa07.w             ; Timer B on
-	bset	#0,$fffffa13.w
+	sf	$fffffa1b.w                  ;
+	lea	Over_rout(pc),a0             ; Launch HBL
+	move.l	a0,$120.w                ;
+	bset	#0,$fffffa07.w             ; Timer B vector
+	bset	#0,$fffffa13.w             ; Timer B on
 	ENDC
 
 	IFEQ	TOPBOTTOM_BORDER
@@ -461,7 +454,7 @@ Restore_st:
 	move.l    #$9000000,(a0)
 	move.l    #$a000000,(a0)
 	
-	lea	Save_all,a0                  ; Restore parameters
+	lea	Save_all,a0                  ; Restore adresses parameters
 	move.b	(a0)+,$fffffa03.w
 	move.b	(a0)+,$fffffa07.w
 	move.b	(a0)+,$fffffa09.w
@@ -481,7 +474,7 @@ Restore_st:
 	move.b	(a0)+,$ffff820a.w
 	move.b	(a0)+,$ffff820d.w
 	
-	lea	Save_rest,a0                 ; Restore parameters
+	lea	Save_rest,a0                 ; Restore adresses parameters
 	move.l	(a0)+,$068.w
 	move.l	(a0)+,$070.w
 	move.l	(a0)+,$110.w
@@ -491,10 +484,10 @@ Restore_st:
 	move.l	(a0)+,$134.w
 	move.l	(a0)+,$484.w
 
-	movem.l	(a0),d0-d7               ; Restore palette system
+	movem.l	(a0),d0-d7               ; Restore palette GEM system
 	movem.l	d0-d7,$ffff8240.w
 
-	bset.b #3,$fffffa17.w            ; Active Timer C
+	bset.b #3,$fffffa17.w            ; Re-active Timer C
 
 	stop	#$2300
 
@@ -634,6 +627,155 @@ Palette:
 	ds.w	16	* Palette
 
 bss_end:
+
+	SECTION	TEXT
+
+; Multi Atari Boot code.
+; If you have done an ST demo, use that boot to run it on these machines:
+;
+; ST, STe, Mega-ST,TT,Falcon,CT60
+;
+; More info:
+; http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html
+
+Multi_boot:
+	sf $1fe.w
+	move.l $5a0.w,d0
+	beq noCookie
+	move.l d0,a0
+.loop:
+	move.l (a0)+,d0
+	beq noCookie
+	cmp.l #'_MCH',d0
+	beq.s .find
+	cmp.l #'CT60',d0
+	bne.s .skip
+
+; CT60, switch off the cache
+	pea (a0)
+
+	lea bCT60(pc),a0
+	st (a0)
+
+	clr.w -(a7) ; param = 0 ( switch off all caches )
+	move.w #5,-(a7) ; opcode
+	move.w #160,-(a7)
+	trap #14
+	addq.w #6,a7
+	move.l (a7)+,a0
+.skip:
+	addq.w #4,a0
+	bra.s .loop
+
+.find:
+	move.w (a0)+,d7
+	beq noCookie ; STF
+	move.b d7,$1fe.w
+
+	cmpi.w #1,d7
+	bne.s .noSTE
+	btst.b #4,1(a0)
+	beq.s .noMegaSTE
+	clr.b $ffff8e21.w ; 8Mhz MegaSTE
+
+.noMegaSTE:
+	bra noCookie
+
+.noSTE:
+; here TT or FALCON
+
+; Always switch off the cache on these machines.
+	move.b bCT60(pc),d0
+	bne.s .noMovec
+
+	moveq #0,d0
+	dc.l $4e7b0002 ; movec d0,cacr ; switch off cache
+.noMovec:
+
+	cmpi.w #3,d7
+	bne.s noCookie
+
+; Here FALCON
+	move.w #$59,-(a7) ;check monitortype (falcon)
+	trap #14
+	addq.l #2,a7
+	lea rgb50(pc),a0
+	subq.w #1,d0
+	beq.s .setRegs
+	subq.w #2,d0
+	beq.s .setRegs
+	lea vga50(pc),a0
+
+.setRegs:
+	move.l (a0)+,$ffff8282.w
+	move.l (a0)+,$ffff8286.w
+	move.l (a0)+,$ffff828a.w
+	move.l (a0)+,$ffff82a2.w
+	move.l (a0)+,$ffff82a6.w
+	move.l (a0)+,$ffff82aa.w
+	move.w (a0)+,$ffff820a.w
+	move.w (a0)+,$ffff82c0.w
+	move.w (a0)+,$ffff8266.w
+	clr.b $ffff8260.w
+	move.w (a0)+,$ffff82c2.w
+	move.w (a0)+,$ffff8210.w
+
+noCookie:
+
+; Set res for all machines exept falcon or ct60
+	cmpi.b #3,$1fe.w
+	beq letsGo
+
+	clr.w -(a7) ;set stlow (st/tt)
+	moveq #-1,d0
+	move.l d0,-(a7)
+	move.l d0,-(a7)
+	move.w #5,-(a7)
+	trap #14
+	lea 12(a7),a7
+
+	cmpi.b #2,$1fe.w ; enough in case of TT
+	beq.s letsGo
+
+	move.w $468.w,d0
+.vsync:
+	cmp.w $468.w,d0
+	beq.s .vsync
+
+	move.b #2,$ffff820a.w
+	clr.b $ffff8260.w
+
+letsGo:
+	rts
+
+vga50:
+	dc.l $170011
+	dc.l $2020E
+	dc.l $D0012
+	dc.l $4EB04D1
+	dc.l $3F00F5
+	dc.l $41504E7
+	dc.w $0200
+	dc.w $186
+	dc.w $0
+	dc.w $5
+	dc.w $50
+
+rgb50:
+	dc.l $300027
+	dc.l $70229
+	dc.l $1e002a
+	dc.l $2710265
+	dc.l $2f0081
+	dc.l $211026b
+	dc.w $0200
+	dc.w $185
+	dc.w $0
+	dc.w $0
+	dc.w $50
+
+bCT60: dc.b 0
+	even
 
 ******************************************************************
 	END
