@@ -1,17 +1,16 @@
 ***************************************
-* // XXXXXXX.PRG                   // *
+* // XXXXXXXX.PRG                  // *
 ***************************************
-* // Asm Intro Code Atari ST v0.41c// *
-* // by Zorro 2/NoExtra (06/11/11) // *
+* // Asm Intro Code Atari ST v0.42 // *
+* // by Zorro 2/NoExtra (05/12/11) // *
 * // http://www.noextra-team.com/  // *
-* // Access memory of screen adress. // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
 * // Gfx font      :               // *
 * // Music         :               // *
-* // Release date  : xx/xx/2011    // *
-* // Update date   : xx/xx/2011    // *
+* // Release date  : xx/xx/2012    // *
+* // Update date   : xx/xx/2012    // *
 ***************************************
   OPT c+ ; Case sensitivity on        *
   OPT d- ; Debug off                  *
@@ -20,18 +19,22 @@
   OPT x- ; Extended debug off         *
 ***************************************
 
-	SECTION	TEXT
+***************************************************************
+	SECTION	TEXT                                             // *
+***************************************************************
 
-********************************************************************
+**************************** OVERSCAN ******************************
 BOTTOM_BORDER    equ 1         ; Use the bottom overscan           *
 TOPBOTTOM_BORDER equ 1         ; Use the top and bottom overscan   *
 NO_BORDER        equ 0         ; Use a standard screen             *
+********************************************************************
 PATTERN          equ $00010001 ; See the screen plan               *
 SEEMYVBL         equ 0         ; See CPU used if you press ALT key *
-ERROR_SYS        equ 0	       ; Manage Errors System              *
-FADE_INTRO       equ 1	       ; Fade White to black palette       *
+ERROR_SYS        equ 0         ; Manage Errors System              *
+FADE_INTRO       equ 1         ; Fade White to black palette       *
+TEST_STE         equ 1         ; Code only for Atari STE machine   *
 ********************************************************************
-* Remarque : 0 = I use it / 1 = no need !                          *
+*            Remarque : 0 = I use it / 1 = no need !               *
 ********************************************************************
 
 Begin:
@@ -57,11 +60,20 @@ Begin:
 	lea 	12(sp),sp                  ;
 	
 	clr.l	-(sp)                      ; Supervisor mode
-	move.w	#32,-(sp)
-	trap	#1
-	addq.l	#6,sp
-	move.l	d0,Save_stack
+	move.w	#32,-(sp)                ;
+	trap	#1                         ;
+	addq.l	#6,sp                    ;
+	move.l	d0,Save_stack            ; Save adress of stack
 mode_super_yet:
+
+ IFEQ TEST_STE
+	move.l	$5a0,a0                  ; Test STE machine
+	cmp.l	#$0,a0                     ;
+	beq	EXIT                         ; Pas de cookie_jar donc un vieux ST.
+	move.l	$14(a0),d0               ;
+	cmp.l	#$0,d0                     ; _MCH=0 alors c' est un ST-STf.
+	beq	EXIT                         ;
+ ENDC
 
 	bsr	wait_for_drive               ; Stop floppy driver
 
@@ -69,13 +81,13 @@ mode_super_yet:
 	
 	bsr	Save_and_init_st             ; Save system parameters
 
-	bsr	Init_screens                 ; Screens initialisation
+	bsr	Init_screens                 ; Screen initialisations
 
-	jsr	Multi_boot                   ; Multi Atari Boot code.
+	jsr	Multi_boot                   ; Multi Atari Boot code
 
-	bsr	Init                         ; Inits
+	bsr	Init                         ; Initialisations
 
-******************************************************************************
+**************************** MAIN LOOP ************************>
 
 default_loop:
 
@@ -90,57 +102,57 @@ default_loop:
 
 * <
 
-	lea     physique(pc),a0          ; Swapping screens
-	move.l	(a0),d0
-	move.l	4(a0),(a0)+
-	move.l	d0,(a0)
-	move.b  d0,$ffff820d.w
-	move    d0,-(sp)
-	move.b  (sp)+,d0
-	move.l  d0,$ffff8200.w
-  	
+	lea     physique(pc),a0          ; Swapping two Screens
+	move.l	(a0),d0                  ;
+	move.l	4(a0),(a0)+              ;
+	move.l	d0,(a0)                  ;
+	move.b  d0,$ffff820d.w           ;
+	move    d0,-(sp)                 ;
+	move.b  (sp)+,d0                 ;
+	move.l  d0,$ffff8200.w           ;
+
 	IFEQ	SEEMYVBL
-	cmp.b	#$38,$fffffc02.w           ; ALT key
-	bne.s	next_key
+	cmp.b	#$38,$fffffc02.w           ; ALT key pressed ?
+	bne.s	next_key                   ;
 	move.b	#7,$ffff8240.w           ; See the rest of CPU
-next_key:	
+next_key:                          ;
 	ENDC
 
-	cmp.b	#$39,$fffffc02.w           ; SPACE key
+	cmp.b	#$39,$fffffc02.w           ; SPACE key pressed ?
 	bne	default_loop
 
-******************************************************************************
+**************************** MAIN LOOP ************************<
 
 SORTIE:
 	bsr	Restore_st                   ; Restore all registers
 
-	move.l	Save_stack,-(sp)         ; Restore user Mode
-	move.w	#32,-(sp)
-	trap	#1
-	addq.l	#6,sp
+EXIT:
+	move.l	Save_stack,-(sp)         ; Restore adress of stack
+	move.w	#32,-(sp)                ; Restore user Mode
+	trap	#1                         ;
+	addq.l	#6,sp                    ;
 
 	clr.w	-(sp)                      ; Pterm()
 	trap	#1                         ; EXIT program
 
-************************************************
-*                                              *
-*               Init Routines                  *
-*                                              *
-************************************************
+***************************************************************
+*                                                             *
+*                 Initialisations Routines                    *
+*                                                             *
+***************************************************************
 Init:	movem.l	d0-d7/a0-a6,-(a7)
 
 	IFEQ	FADE_INTRO
 	bsr	fadein                       ; Fading white to black
-	clr.w	$ffff8240.w
 	ENDC
 
 	moveq	#1,d0                      ; Choice of the music (1 is default)
 	jsr	MUSIC+0                      ; Init SNDH music
 
 	lea	Vbl(pc),a0                   ; Launch VBL
-	move.l	a0,$70.w
+	move.l	a0,$70.w                 ;
 
-	lea	Default_palette,a0       ; Put palette
+	lea	Default_palette,a0           ; Put palette
 	lea	$ffff8240.w,a1               ;
 	movem.l	(a0),d0-d7               ;
 	movem.l	d0-d7,(a1)               ;
@@ -148,38 +160,42 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
-************************************************
-*                                              *
-*              Screen Routines                 *
-*                                              *
-************************************************
+***************************************************************
+*                                                             *
+*                       Screen Routines                       *
+*                                                             *
+***************************************************************
  IFEQ	BOTTOM_BORDER
-SIZE_OF_SCREEN equ 160*250
+SIZE_OF_SCREEN equ 160*250        ; Screen + Lower Border size
  ENDC
  IFEQ	TOPBOTTOM_BORDER
-SIZE_OF_SCREEN equ 160*300
+SIZE_OF_SCREEN equ 160*300        ; Screen + Top & Lower Border size
  ENDC
  IFEQ	NO_BORDER
-SIZE_OF_SCREEN equ 160*200
+SIZE_OF_SCREEN equ 160*200        ; Only Screen size
  ENDC
-
-TOTAL_NUMBER_SCREEN equ 2
-TOTAL_SIZEOF_SCREEN equ TOTAL_NUMBER_SCREEN*SIZE_OF_SCREEN
 
 Init_screens:
 	movem.l	d0-d7/a0-a6,-(a7)
 
-	move.l	#Screen_1,d0
-	add.w	#$ff,d0
-	sf	d0
-	move.l	d0,physique
+	move.l	#Screen_1,d0             ; Set physical Screen #1
+	add.w	#$ff,d0                    ;
+	sf	d0                           ;
+	move.l	d0,physique              ;
 
-	move.l	#Screen_2,d0
-	add.w	#$ff,d0
-	sf	d0
-	move.l	d0,physique+4
+	move.l	#Screen_2,d0             ; Set logical Screen #2
+	add.w	#$ff,d0                    ;
+	sf	d0                           ;
+	move.l	d0,physique+4            ;
 
-	move.l	physique,d0              ; Put physical screen
+	move.l	physique(pc),a0          ; Put PATTERN in two Screens
+	move.l	physique+4(pc),a1        ;
+	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
+	move.l  #PATTERN,(a0)+           ;
+	move.l  #PATTERN,(a1)+           ;
+	dbf	    d7,*-12                  ;
+
+	move.l	physique(pc),d0          ; Put physical Screen
 	move.b	d0,d1                    ;
 	lsr.w	#8,d0                      ;
 	move.b	d0,$ffff8203.w           ;
@@ -187,28 +203,23 @@ Init_screens:
 	move.b	d0,$ffff8201.w           ;
 	move.b	d1,$ffff820d.w           ;
 
-	move.l	physique(pc),a0          ; Put PATTERN on screens
-	move.l	physique+4(pc),a1        ;
-	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
-	move.l  #PATTERN,(a0)+           ;
-	move.l  #PATTERN,(a1)+           ;
-	dbf	    d7,*-12                  ;
-
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
-physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
+physique:
+	ds.l 2                           ; Number of screens declared
 
-************************************************
-*                                              *
-*               Vbl Routines                   *
-*                                              *
-************************************************
-Vbl:	st	Vsync                 ; Synchronisation
+***************************************************************
+*                                                             *
+*                        Vbl Routines                         *
+*                                                             *
+***************************************************************
+Vbl:	st	Vsync                    ; Synchronisation
 
-;	movem.l	d0-d7/a0-a6,-(a7)
+	movem.l	d0-d7/a0-a6,-(a7)
 
 	IFEQ	BOTTOM_BORDER
+	clr.b   $fffffa1b.w              ; Disable timer B
 	lea	Over_rout(pc),a0             ; HBL
 	move.l	a0,$120.w                ; Timer B vector
 	move.b	#199,$fffffa21.w         ; At the position
@@ -225,21 +236,22 @@ Vbl:	st	Vsync                 ; Synchronisation
 	move.l	(a7)+,a0
 	ENDC
 
- IFEQ	NO_BORDER
- ENDC
+	IFEQ	NO_BORDER
+* // Declarations here ...
+	ENDC
 
 	jsr 	(MUSIC+8)                  ; Play SNDH music
 
-;	movem.l	(a7)+,d0-d7/a0-a6
+	movem.l	(a7)+,d0-d7/a0-a6
 	rte
 
 Wait_vbl:                          ; Test Synchronisation
-	move.l	a0,-(a7)
-	lea	Vsync,a0
-	sf	(a0)
-.loop:	tst.b	(a0)
-	beq.s	.loop
-	move.l	(a7)+,a0
+	move.l	a0,-(a7)                 ;
+	lea	Vsync,a0                     ;
+	sf	(a0)                         ;
+.loop:	tst.b	(a0)                 ;
+	beq.s	.loop                      ;
+	move.l	(a7)+,a0                 ;
 	rts
 
  IFEQ	NO_BORDER
@@ -248,7 +260,7 @@ Wait_vbl:                          ; Test Synchronisation
 *               < Here is the no border rout >                *
 *                                                             *
 ***************************************************************
-
+* // Declarations here ...
  ENDC
 
 	IFEQ	BOTTOM_BORDER
@@ -282,7 +294,9 @@ imra = $FFFFFA13
 imrb = $FFFFFA15
 tacr = $FFFFFA19
 tadr = $FFFFFA1F
-my_hbl:rte
+
+my_hbl:
+	rte
 
 topbord:
 	move.l	a0,-(a7)
@@ -313,21 +327,15 @@ botbord:
 	rte
 	ENDC
 
-************************************************
-*                                              *
-*         Save/Restore System Routines         *
-*                                              *
-************************************************
+***************************************************************
+*                                                             *
+*                Save/Restore System Routines                 *
+*                                                             *
+***************************************************************
 Save_and_init_st:
 
 	moveq #$13,d0                    ; Pause keyboard
 	bsr	sendToKeyboard               ;
-
-	move.b	$ffff820a.w,save_refresh ; Save and set refreshrate
-	or.b	#%00000010,$ffff820a.w
-	move.b	$ffff8260.w,save_resolution ; Save old resolution
-
-	clr.b	$ffff8260.w                ; Set low resolution by default !
 
 	move #$2700,sr
 		
@@ -349,7 +357,7 @@ Save_and_init_st:
 	move.b	$fffffa2d.w,(a0)+        ; Transmitter status
 	move.b	$fffffa2f.w,(a0)+        ; USART data
 
-	move.b	$ffff8201.w,(a0)+        ; Save screenaddress
+	move.b	$ffff8201.w,(a0)+        ; Save screen addresses
 	move.b	$ffff8203.w,(a0)+
 	move.b	$ffff820a.w,(a0)+
 	move.b	$ffff820d.w,(a0)+
@@ -367,27 +375,13 @@ Save_and_init_st:
 	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
 	movem.l	d0-d7,(a0)
 
-	bclr	#3,$fffffa17.w             ; Clear Timers
-	clr.b	$fffffa07.w
-	clr.b	$fffffa09.w 
-	clr.b	$484.w                     ; No bip, no repeat
-
-	stop	#$2300
-
-	moveq #$11,d0                    ; Resume keyboard
-	bsr	sendToKeyboard
-
-	moveq #$12,d0                    ; Kill mouse
-	bsr	sendToKeyboard
-
-	bsr	flush                        ; Init keyboard
-
-	IFEQ	NO_BORDER
-	ENDC
+	bclr	#3,$fffffa17.w             ; Stop Timer C
 
 	IFEQ	BOTTOM_BORDER
-	sf	$fffffa21.w                  ; Stop the Timer B
-	sf	$fffffa1b.w                  ;
+	clr.b	$fffffa07.w                ; Interrupt enable A (Timer-A & B)
+	clr.b	$fffffa09.w                ; Interrupt enable B (Timer-C & D)
+	sf	$fffffa21.w                  ; Timer B data (number of scanlines to next interrupt)
+	sf	$fffffa1b.w                  ; Timer B control (event mode (HBL))
 	lea	Over_rout(pc),a0             ; Launch HBL
 	move.l	a0,$120.w                ;
 	bset	#0,$fffffa07.w             ; Timer B vector
@@ -395,9 +389,9 @@ Save_and_init_st:
 	ENDC
 
 	IFEQ	TOPBOTTOM_BORDER
-	move.b	#%00100000,(iera).w      ; Enable timer A
+	move.b	#%00100000,(iera).w      ; Enable Timer A
 	move.b	#%00100000,(imra).w
-	and.b	#%00010000,(ierb).w        ; Disable all except timer D
+	and.b	#%00010000,(ierb).w        ; Disable all except Timer D
 	and.b	#%00010000,(imrb).w
 	or.b	#%01000000,(ierb).w        ; Enable keyboard
 	or.b	#%01000000,(imrb).w
@@ -407,6 +401,35 @@ Save_and_init_st:
 	lea	topbord(pc),a0
 	move.l	a0,$134.w                ; Timer A vector
 	ENDC
+
+	IFEQ	NO_BORDER
+	clr.b	$fffffa07.w                ; Interrupt enable A (Timer-A & B)
+	clr.b	$fffffa09.w                ; Interrupt enable B (Timer-C & D)
+	ENDC
+
+	stop	#$2300
+
+	clr.b	$484.w                     ; No bip, no repeat
+
+	move	#4,-(sp)                   ; Save & Change Resolution (GetRez)
+	trap	#14	                       ; Get Current Res.
+	addq.l	#2,sp                    ;
+	move	d0,Old_Resol+2             ; Save it
+
+	move	#3,-(sp)                   ; Save Screen Address (Logical)
+	trap	#14
+	addq.l	#2,sp
+	move.l	d0,Old_Screen+2
+
+	moveq #$11,d0                    ; Resume keyboard
+	bsr	sendToKeyboard               ;
+
+	moveq #$12,d0                    ; Kill mouse
+	bsr	sendToKeyboard               ;
+
+	bsr	flush                        ; Init keyboard
+
+	sf	$ffff8260.w                  ; Basse resolution if you don't use Multi_boot
 
 	rts
 
@@ -420,9 +443,9 @@ Restore_st:
 	jsr	MUSIC+4                      ; Stop SNDH music
 
 	lea       $ffff8800.w,a0         ; Cut sound
-	move.l    #$8000000,(a0)
-	move.l    #$9000000,(a0)
-	move.l    #$a000000,(a0)
+	move.l    #$8000000,(a0)         ; Voice A
+	move.l    #$9000000,(a0)         ; Voice B
+	move.l    #$a000000,(a0)         ; Voice C
 
 	IFEQ	ERROR_SYS
 	bsr	OUTPUT_TRACE_ERROR
@@ -446,10 +469,10 @@ Restore_st:
 	move.b	(a0)+,$fffffa2d.w        ; Transmitter status
 	move.b	(a0)+,$fffffa2f.w        ; USART data
 	
-	move.b	(a0)+,$ffff8201.w        ; Restore screenaddress
-	move.b	(a0)+,$ffff8203.w
-	move.b	(a0)+,$ffff820a.w
-	move.b	(a0)+,$ffff820d.w
+	move.b	(a0)+,$ffff8201.w        ; Restore screen addresses
+	move.b	(a0)+,$ffff8203.w        ;
+	move.b	(a0)+,$ffff820a.w        ;
+	move.b	(a0)+,$ffff820d.w        ;
 	
 	lea	Save_rest,a0                 ; Restore adresses parameters
 	move.l	(a0)+,$068.w             ; HBL
@@ -462,27 +485,33 @@ Restore_st:
 	move.l	(a0)+,$484.w             ; Conterm
 
 	movem.l	(a0),d0-d7               ; Restore palette GEM system
-	movem.l	d0-d7,$ffff8240.w
+	movem.l	d0-d7,$ffff8240.w        ;
 
 	bset.b #3,$fffffa17.w            ; Re-active Timer C
 
 	stop	#$2300
 
 	moveq #$11,d0                    ; Resume keyboard
-	bsr	sendToKeyboard
+	bsr	sendToKeyboard               ;
 
 	moveq #$8,d0                     ; Restore mouse
 	bsr	sendToKeyboard               ;
 
-	bsr	flush                        ; Restore keyboard
+	bsr	flush                        ; Init keyboard
 
-	move.b	save_refresh,$ffff820a.w ; Restore refreshrate
+Old_Resol:                         ; Restore Old Screen & Resolution
+	move	#0,-(sp)                   ;
+Old_Screen:                        ;
+	move.l	#0,-(sp)                 ;
+	move.l	(sp),-(sp)               ;
+	move	#5,-(sp)                   ;
+	trap	#14                        ;
+	lea	12(sp),sp                    ;
 
-	move.w	#37,-(sp)                ; VSYNC()
-	trap	#14
-	addq.l	#2,sp
+	move.w	#$25,-(a7)               ; VSYNC()
+	trap	#14                        ;
+	addq.w	#2,a7                    ;
 
-	move.b	save_resolution,$ffff8260.w ; Restore old resolution
 	rts
 
 flush:	lea	$FFFFFC00.w,a0
@@ -511,10 +540,12 @@ clear_bss:
 	rts
 
 	IFEQ	FADE_INTRO
-************************************************
-*           FADING WHITE TO BLACK              *
-*         (Don't use VBL with it !)            *
-************************************************
+***************************************************************
+*                                                             *
+*                    FADING WHITE TO BLACK                    *
+*                  (Don't use VBL with it !)                  *
+*                                                             *
+***************************************************************
 fadein:	move.l	#$777,d0
 .deg:	bsr.s	wart
 	bsr.s	wart
@@ -525,7 +556,15 @@ fadein:	move.l	#$777,d0
 	dbf	d1,.chg1
 	sub.w	#$111,d0
 	bne.s	.deg
-	clr.w	$ffff8240.w
+	moveq     #0,d0                  ; Clear Palette
+	moveq     #0,d1                  ;
+	moveq     #0,d2                  ;
+	moveq     #0,d3                  ;
+	moveq     #0,d4                  ;
+	moveq     #0,d5                  ;
+	moveq     #0,d6                  ;
+	moveq     #0,d7                  ;
+	movem.l   d0-d7,$ffff8240.w      ;
 	rts
 
 wart:	move.l	d0,-(sp)
@@ -536,17 +575,16 @@ wart:	move.l	d0,-(sp)
 	rts
 	ENDC
 
-************************************************
-*                                              *
-*               Sub Routines                   *
-*                                              *
-************************************************
+***************************************************************
+; SUB-ROUTINES                                             // *
+***************************************************************
 
 
 
-******************************************************************
-	SECTION	DATA
-******************************************************************
+
+***************************************************************
+ SECTION	DATA                                             // *
+***************************************************************
 
 Default_palette:
 	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
@@ -558,13 +596,13 @@ Default_palette:
 
 * <
 
-MUSIC:
-	incbin	*.snd                    ; SNDH music -> Not compressed please !!!
+MUSIC:	* SNDH music -> Not compressed please !!!
+	incbin	"*.SND"
 	even
 
-******************************************************************
-	SECTION	BSS
-******************************************************************
+***************************************************************
+ SECTION	BSS                                              // *
+***************************************************************
 
 bss_start:
 
@@ -595,47 +633,26 @@ Save_rest:
 Palette:
 	ds.w	16 * Palette System
 
-save_resolution:
-	ds.b	1 * Resolution Screen
-
-save_refresh:
-	ds.w	1 * Refreshrate
-
-mstart:
-	ds.l	1 * Location memory adress
-
 bss_end:
 
 Screen_1:
 	ds.b	256
-* 1
-	ds.b	160*200
-	IFEQ	BOTTOM_BORDER
-	ds.b	160*50
-	ENDC
-	IFEQ	TOPBOTTOM_BORDER
-	ds.b	160*100
-	ENDC
+	ds.b	SIZE_OF_SCREEN
 Screen_2:
 	ds.b	256
-* 2
-	ds.b	160*200
-	IFEQ	BOTTOM_BORDER
-	ds.b	160*50
-	ENDC
-	IFEQ	TOPBOTTOM_BORDER
-	ds.b	160*100
-	ENDC
+	ds.b	SIZE_OF_SCREEN
 
-	SECTION	TEXT
+***************************************************************
+	SECTION	TEXT                                             // *
+***************************************************************
 
 	IFEQ	ERROR_SYS
-************************************************
-*                                              *
-*               Error Routines                 *
-*                Dbug 2/Next                   *
-*                                              *
-************************************************
+***************************************************************
+*                                                             *
+*               Error Routines (Dbug 2/Next)                  *
+*          http://www.defence-force.org/index.htm             *
+*                                                             *
+***************************************************************
 INPUT_TRACE_ERROR:
 	lea $8.w,a0                       ; Adresse de base des vecteurs (Erreur de Bus)
 	lea liste_vecteurs,a1             ;
@@ -715,15 +732,14 @@ liste_vecteurs:
 	ENDC
 
 ***************************************************************************
+*                                                                         *
 * Multi Atari Boot code.                                                  *
 * If you have done an ST demo, use that boot to run it on these machines: *
-*                                                                         *
 * ST, STe, Mega-ST,TT,Falcon,CT60                                         *
-*                                                                         *
 * More info:                                                              *
 * http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html        *
+*                                                                         *
 ***************************************************************************
-
 Multi_boot:
 	sf $1fe.w
 	move.l $5a0.w,d0
@@ -768,7 +784,14 @@ Multi_boot:
 	bra noCookie
 
 .noSTE:
-; here TT or FALCON
+; => here TT or FALCON
+
+ IFEQ TEST_STE
+; Mode STE on Falcon
+	bclr.b	#5,$FFFF8007.w
+; Blitter at 8Mhz
+	bclr.b	#2,$FFFF8007.w
+ ENDC
 
 ; Always switch off the cache on these machines.
 	move.b bCT60(pc),d0
@@ -867,5 +890,5 @@ bCT60: dc.b 0
 	even
 
 ******************************************************************
-	END
+	END                                                         // *
 ******************************************************************

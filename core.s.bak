@@ -1,8 +1,8 @@
 ***************************************
 * // XXXXXXX.PRG                   // *
 ***************************************
-* // Asm Intro Code Atari ST v0.41b// *
-* // by Zorro 2/NoExtra (03/11/11) // *
+* // Asm Intro Code Atari ST v0.41c// *
+* // by Zorro 2/NoExtra (06/11/11) // *
 * // http://www.noextra-team.com/  // *
 * // Access memory of screen adress. // *
 ***************************************
@@ -169,20 +169,23 @@ TOTAL_SIZEOF_SCREEN equ TOTAL_NUMBER_SCREEN*SIZE_OF_SCREEN
 Init_screens:
 	movem.l	d0-d7/a0-a6,-(a7)
 
-	move.l	#Screen,d0
-	move.l	d0,d1
-	add.w	#256,d0                    ; Make screens
-	clr.b	d0                         ; Even by 256 bytes
-	lea.l	physique(pc),a0            ;
-	move.l	d0,(a0)+                 ;
-	add.l	#SIZE_OF_SCREEN,d1         ;
-	clr.b	d1                         ;
-	move.l	d1,(a0)                  ;
+	move.l	#Screen_1,d0
+	add.w	#$ff,d0
+	sf	d0
+	move.l	d0,physique
 
-	move.b  d0,$ffff820d.w           ; Put physical screen
-	move    d0,-(sp)                 ;
-	move.b  (sp)+,d0                 ;
-	move.l  d0,$ffff8200.w           ;
+	move.l	#Screen_2,d0
+	add.w	#$ff,d0
+	sf	d0
+	move.l	d0,physique+4
+
+	move.l	physique,d0              ; Put physical screen
+	move.b	d0,d1                    ;
+	lsr.w	#8,d0                      ;
+	move.b	d0,$ffff8203.w           ;
+	swap	d0                         ;
+	move.b	d0,$ffff8201.w           ;
+	move.b	d1,$ffff820d.w           ;
 
 	move.l	physique(pc),a0          ; Put PATTERN on screens
 	move.l	physique+4(pc),a1        ;
@@ -201,9 +204,9 @@ physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
 *               Vbl Routines                   *
 *                                              *
 ************************************************
-Vbl:	addq.w	#1,Vsync                 ; Synchronisation
+Vbl:	st	Vsync                 ; Synchronisation
 
-	movem.l	d0-d7/a0-a6,-(a7)
+;	movem.l	d0-d7/a0-a6,-(a7)
 
 	IFEQ	BOTTOM_BORDER
 	lea	Over_rout(pc),a0             ; HBL
@@ -213,13 +216,13 @@ Vbl:	addq.w	#1,Vsync                 ; Synchronisation
 	ENDC
 
 	IFEQ	TOPBOTTOM_BORDER
-	;move.l	a0,-(a7)
+	move.l	a0,-(a7)
 	clr.b	(tacr).w                   ; Stop timer A
 	lea	topbord(pc),a0               ; Launch HBL
 	move.l	a0,$134.w                ; Timer A vector
 	move.b	#99,(tadr).w             ; Countdown value for timer A
 	move.b	#4,(tacr).w              ; Delay mode, clock divided by 50
-	;move.l	(a7)+,a0
+	move.l	(a7)+,a0
 	ENDC
 
  IFEQ	NO_BORDER
@@ -227,13 +230,16 @@ Vbl:	addq.w	#1,Vsync                 ; Synchronisation
 
 	jsr 	(MUSIC+8)                  ; Play SNDH music
 
-	movem.l	(a7)+,d0-d7/a0-a6
+;	movem.l	(a7)+,d0-d7/a0-a6
 	rte
 
 Wait_vbl:                          ; Test Synchronisation
-	tst.w	Vsync                      ;
-	beq.s	Wait_vbl                   ;
-	clr.w	Vsync                      ;
+	move.l	a0,-(a7)
+	lea	Vsync,a0
+	sf	(a0)
+.loop:	tst.b	(a0)
+	beq.s	.loop
+	move.l	(a7)+,a0
 	rts
 
  IFEQ	NO_BORDER
@@ -600,7 +606,7 @@ mstart:
 
 bss_end:
 
-Screen:
+Screen_1:
 	ds.b	256
 * 1
 	ds.b	160*200
@@ -610,6 +616,8 @@ Screen:
 	IFEQ	TOPBOTTOM_BORDER
 	ds.b	160*100
 	ENDC
+Screen_2:
+	ds.b	256
 * 2
 	ds.b	160*200
 	IFEQ	BOTTOM_BORDER
