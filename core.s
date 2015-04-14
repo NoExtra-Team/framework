@@ -1,9 +1,11 @@
 ***************************************
 * // XXXXXXX.PRG                   // *
 ***************************************
-* // Asm Intro Code Atari ST v0.39 // *
-* // by Zorro 2/NoExtra (06/04/11) // *
+* // Asm Intro Code Atari ST v0.40 // *
+* // by Zorro 2/NoExtra (31/08/11) // *
 * // http://www.noextra-team.com/  // *
+* // Hall of fame of supreme ST    // *
+* // Debugger : Maartau.           // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
@@ -113,6 +115,8 @@ next_key:
 SORTIE:
 	bsr	Restore_st                   ; Restore all registers
 
+	bsr	DeInit_screens               ; Restore allocation memory
+
 	move.l	Save_stack,-(sp)         ; Restore user Mode
 	move.w	#32,-(sp)
 	trap	#1
@@ -133,12 +137,13 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 	clr.w	$ffff8240.w
 	ENDC
 
-	jsr	MUSIC+0                      ; Init music
+	moveq	#1,d0                      ; Choice of the music (1 is default)
+	jsr	MUSIC+0                      ; Init SNDH music
 
 	lea	Vbl(pc),a0                   ; Launch VBL
 	move.l	a0,$70.w
 
-	lea	Pal(pc),a0                   ; Put palette
+	lea	Default_palette(pc),a0                   ; Put palette
 	lea	$ffff8240.w,a1               ;
 	movem.l	(a0),d0-d7               ;
 	movem.l	d0-d7,(a1)               ;
@@ -174,6 +179,8 @@ Init_screens:
 	tst.l	d0                         ;
 	beq	SORTIE                       ; Test memory
 
+	move.l	d0,mstart                ; Keep the adress for Mfree()
+
 	move.l	d0,d1
 	add.w	#256,d0                    ; Make screens
 	clr.b	d0                         ; Even by 256 bytes
@@ -196,6 +203,17 @@ Init_screens:
 	dbf	    d7,*-12                  ;
 
 	movem.l	(a7)+,d0-d7/a0-a6
+	rts
+
+DeInit_screens:
+	movem.l	d0-d7/a0-a6,-(a7)
+
+	move.l	#mstart,-(sp)            ; MFree()
+	move.w	#73,-(sp)                ; Screen memory
+	trap	#1                         ;
+	addq.l	#6,sp                    ;
+
+	movem.l	(a7)+,d0-d7/a0-a6	
 	rts
 
 physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
@@ -227,7 +245,10 @@ Vbl:
 	;move.l	(a7)+,a0
 	ENDC
 
-	jsr 	(MUSIC+8)                  ; Play music
+ IFEQ	NO_BORDER
+ ENDC
+
+	jsr 	(MUSIC+8)                  ; Play SNDH music
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rte
@@ -240,6 +261,15 @@ Wait_vbl:                          ; Test Synchronisation
 	beq.s	.loop
 	move.l	(a7)+,a0
 	rts
+
+ IFEQ	NO_BORDER
+***************************************************************
+*                                                             *
+*               < Here is the no border rout >                *
+*                                                             *
+***************************************************************
+
+ ENDC
 
 	IFEQ	BOTTOM_BORDER
 ***************************************************************
@@ -352,12 +382,12 @@ Save_and_init_st:
 
 	stop	#$2300
 
-	move	#4,-(sp)                   ; Save & Change Resolution
+	move	#4,-(sp)                   ; Save & Change Resolution (GetRez)
 	trap	#14	                       ; Get Current Res.
 	addq.l	#2,sp
 	move	d0,Old_Resol+2
 
-	move	#2,-(sp)                   ; Save Screen Address
+	move	#3,-(sp)                   ; Save Screen Address (Logical)
 	trap	#14
 	addq.l	#2,sp
 	move.l	d0,Old_Screen+2
@@ -366,6 +396,9 @@ Save_and_init_st:
 	bsr	flush
 	move.b	#$12,d0
 	bsr	setkeyboard
+
+	IFEQ	NO_BORDER
+	ENDC
 
 	IFEQ	BOTTOM_BORDER
 	sf	$fffffa21.w                  ; Stop the Timer B
@@ -396,7 +429,7 @@ Restore_st:
 
 	move #$2700,sr
 
-	jsr	MUSIC+4                      ; de-init music
+	jsr	MUSIC+4                      ; Stop SNDH music
 
 	lea       $ffff8800.w,a0         ; Cut sound
 	move.l    #$8000000,(a0)
@@ -488,17 +521,17 @@ setkeyboard:
 	move.b	d0,$FFFFFC02.w
 	rts
 
+wait_for_drive:
+	move.w	$ffff8604.w,d0
+	btst	#7,d0
+	bne.s	wait_for_drive
+	rts
+
 clear_bss:
 	lea	bss_start,a0
 .loop:	clr.l	(a0)+
 	cmp.l	#bss_end,a0
 	blt.s	.loop
-	rts
-
-wait_for_drive:
-	move.w	$ffff8604.w,d0
-	btst	#7,d0
-	bne.s	wait_for_drive
 	rts
 
 	IFEQ	FADE_INTRO
@@ -539,7 +572,7 @@ wart:	move.l	d0,-(sp)
 	SECTION	DATA
 ******************************************************************
 
-Pal:	
+Default_palette:	
 	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
 	dc.w	$777,$111,$222,$333,$444,$555,$666,$777
 
@@ -550,7 +583,7 @@ Pal:
 * <
 
 MUSIC:
-	incbin	*.snd                    ; Not compressed please !!!
+	incbin	*.snd                    ; SNDH music -> Not compressed please !!!
 	even
 
 ******************************************************************
@@ -563,7 +596,6 @@ bss_start:
 
 
 * <
-
 Vsync:	ds.w	1
 Save_stack:	ds.l	1
 
@@ -583,6 +615,7 @@ Save_rest:
 	ds.l	1	* Output Bip Bop
 Palette:
 	ds.w	16	* Palette
+mstart:	ds.l	1 * location memory adress
 
 bss_end:
 
