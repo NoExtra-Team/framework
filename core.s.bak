@@ -1,11 +1,10 @@
 ***************************************
 * // XXXXXXX.PRG                   // *
 ***************************************
-* // Asm Intro Code Atari ST v0.40 // *
-* // by Zorro 2/NoExtra (31/08/11) // *
+* // Asm Intro Code Atari ST v0.41a// *
+* // by Zorro 2/NoExtra (03/11/11) // *
 * // http://www.noextra-team.com/  // *
-* // Hall of fame of supreme ST    // *
-* // Debugger : Maartau.           // *
+* // Malloc of screen adress.      // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
@@ -68,9 +67,9 @@ mode_super_yet:
 
 	bsr	clear_bss                    ; Clean BSS stack
 	
-	bsr	Init_screens                 ; Screens initialisation
-
 	bsr	Save_and_init_st             ; Save system parameters
+
+	bsr	Init_screens                 ; Screens initialisation
 
 	jsr	Multi_boot                   ; Multi Atari Boot code.
 
@@ -143,7 +142,7 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 	lea	Vbl(pc),a0                   ; Launch VBL
 	move.l	a0,$70.w
 
-	lea	Default_palette(pc),a0                   ; Put palette
+	lea	Default_palette(pc),a0       ; Put palette
 	lea	$ffff8240.w,a1               ;
 	movem.l	(a0),d0-d7               ;
 	movem.l	d0-d7,(a1)               ;
@@ -163,7 +162,7 @@ SIZE_OF_SCREEN equ 160*250
 SIZE_OF_SCREEN equ 160*300
  ENDC
  IFEQ	NO_BORDER
-SIZE_OF_SCREEN equ 160*200
+SIZE_OF_SCREEN equ 160*204
  ENDC
 
 TOTAL_NUMBER_SCREEN equ 2
@@ -223,10 +222,9 @@ physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
 *               Vbl Routines                   *
 *                                              *
 ************************************************
-Vbl:
-	movem.l	d0-d7/a0-a6,-(a7)
+Vbl:	addq.w	#1,Vsync                 ; Synchronisation
 
-	st	Vsync                        ; Synchronisation
+	movem.l	d0-d7/a0-a6,-(a7)
 
 	IFEQ	BOTTOM_BORDER
 	lea	Over_rout(pc),a0             ; HBL
@@ -254,12 +252,9 @@ Vbl:
 	rte
 
 Wait_vbl:                          ; Test Synchronisation
-	move.l	a0,-(a7)
-	lea	Vsync,a0
-	sf	(a0)
-.loop:	tst.b	(a0)
-	beq.s	.loop
-	move.l	(a7)+,a0
+	tst.w	Vsync                      ;
+	beq.s	Wait_vbl                   ;
+	clr.w	Vsync                      ;
 	rts
 
  IFEQ	NO_BORDER
@@ -340,37 +335,49 @@ botbord:
 ************************************************
 Save_and_init_st:
 
+	moveq #$13,d0                    ; Pause keyboard
+	bsr	sendToKeyboard               ;
+
+	move.b	$ffff820a.w,save_refresh ; Save and set refreshrate
+	or.b	#%00000010,$ffff820a.w
+	move.b	$ffff8260.w,save_resolution ; Save old resolution
+
+	clr.b	$ffff8260.w                ; Set low resolution by default !
+
 	move #$2700,sr
 		
 	lea	Save_all,a0                  ; Save adresses parameters
-	move.b	$fffffa03.w,(a0)+
-	move.b	$fffffa07.w,(a0)+
-	move.b	$fffffa09.w,(a0)+
-	move.b	$fffffa11.w,(a0)+
-	move.b	$fffffa13.w,(a0)+
-	move.b	$fffffa15.w,(a0)+
-	move.b	$fffffa17.w,(a0)+
-	move.b	$fffffa19.w,(a0)+
+	move.b	$fffffa01.w,(a0)+        ; Datareg
+	move.b	$fffffa03.w,(a0)+        ; Active edge
+	move.b	$fffffa05.w,(a0)+        ; Data direction
+	move.b	$fffffa07.w,(a0)+        ; Interrupt enable A
+	move.b	$fffffa13.w,(a0)+        ; Interupt Mask A
+	move.b	$fffffa09.w,(a0)+        ; Interrupt enable B
+	move.b	$fffffa15.w,(a0)+        ; Interrupt mask B
+	move.b	$fffffa17.w,(a0)+        ; Automatic/software end of interupt
+	move.b	$fffffa19.w,(a0)+        ; Timer A control
+	move.b	$fffffa1b.w,(a0)+        ; Timer B control
+	move.b	$fffffa1d.w,(a0)+        ; Timer C & D control
+	move.b	$fffffa27.w,(a0)+        ; Sync character
+	move.b	$fffffa29.w,(a0)+        ; USART control
+	move.b	$fffffa2b.w,(a0)+        ; Receiver status
+	move.b	$fffffa2d.w,(a0)+        ; Transmitter status
+	move.b	$fffffa2f.w,(a0)+        ; USART data
 
-	move.b	$fffffa1b.w,(a0)+
-	move.b	$fffffa1d.w,(a0)+
-	move.b	$fffffa1f.w,(a0)+
-	move.b	$fffffa21.w,(a0)+
-
-	move.b	$ffff8201.w,(a0)+
+	move.b	$ffff8201.w,(a0)+        ; Save screenaddress
 	move.b	$ffff8203.w,(a0)+
 	move.b	$ffff820a.w,(a0)+
 	move.b	$ffff820d.w,(a0)+
 	
-	lea	Save_rest,a0                  ; Save adresses parameters
-	move.l	$068.w,(a0)+	
-	move.l	$070.w,(a0)+	
-	move.l	$110.w,(a0)+	
-	move.l	$114.w,(a0)+	
-	move.l	$118.w,(a0)+	
-	move.l	$120.w,(a0)+	
-	move.l	$134.w,(a0)+	
-	move.l	$484.w,(a0)+	
+	lea	Save_rest,a0                 ; Save adresses parameters
+	move.l	$068.w,(a0)+             ; HBL
+	move.l	$070.w,(a0)+             ; VBL
+	move.l	$110.w,(a0)+             ; TIMER D
+	move.l	$114.w,(a0)+             ; TIMER C
+	move.l	$118.w,(a0)+             ; ACIA
+	move.l	$120.w,(a0)+             ; TIMER B
+	move.l	$134.w,(a0)+             ; TIMER A
+	move.l	$484.w,(a0)+             ; Conterm
 
 	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
 	movem.l	d0-d7,(a0)
@@ -382,20 +389,13 @@ Save_and_init_st:
 
 	stop	#$2300
 
-	move	#4,-(sp)                   ; Save & Change Resolution (GetRez)
-	trap	#14	                       ; Get Current Res.
-	addq.l	#2,sp
-	move	d0,Old_Resol+2
+	moveq #$11,d0                    ; Resume keyboard
+	bsr	sendToKeyboard
 
-	move	#3,-(sp)                   ; Save Screen Address (Logical)
-	trap	#14
-	addq.l	#2,sp
-	move.l	d0,Old_Screen+2
+	moveq #$12,d0                    ; Kill mouse
+	bsr	sendToKeyboard
 
-	bsr	hide_mouse                   ; Keyboard and mouse
-	bsr	flush
-	move.b	#$12,d0
-	bsr	setkeyboard
+	bsr	flush                        ; Init keyboard
 
 	IFEQ	NO_BORDER
 	ENDC
@@ -427,6 +427,9 @@ Save_and_init_st:
 
 Restore_st:
 
+	moveq #$13,d0                    ; Pause keyboard
+	bsr	sendToKeyboard               ;
+
 	move #$2700,sr
 
 	jsr	MUSIC+4                      ; Stop SNDH music
@@ -441,34 +444,37 @@ Restore_st:
 	ENDC
 
 	lea	Save_all,a0                  ; Restore adresses parameters
-	move.b	(a0)+,$fffffa03.w
-	move.b	(a0)+,$fffffa07.w
-	move.b	(a0)+,$fffffa09.w
-	move.b	(a0)+,$fffffa11.w
-	move.b	(a0)+,$fffffa13.w
-	move.b	(a0)+,$fffffa15.w
-	move.b	(a0)+,$fffffa17.w
-	move.b	(a0)+,$fffffa19.w
-
-	move.b	(a0)+,$fffffa1b.w
-	move.b	(a0)+,$fffffa1d.w
-	move.b	(a0)+,$fffffa1f.w
-	move.b	(a0)+,$fffffa21.w
+	move.b	(a0)+,$fffffa01.w        ; Datareg
+	move.b	(a0)+,$fffffa03.w        ; Active edge
+	move.b	(a0)+,$fffffa05.w        ; Data direction
+	move.b	(a0)+,$fffffa07.w        ; Interrupt enable A
+	move.b	(a0)+,$fffffa13.w        ; Interupt Mask A
+	move.b	(a0)+,$fffffa09.w        ; Interrupt enable B
+	move.b	(a0)+,$fffffa15.w        ; Interrupt mask B
+	move.b	(a0)+,$fffffa17.w        ; Automatic/software end of interupt
+	move.b	(a0)+,$fffffa19.w        ; Timer A control
+	move.b	(a0)+,$fffffa1b.w        ; Timer B control
+	move.b	(a0)+,$fffffa1d.w        ; Timer C & D control
+	move.b	(a0)+,$fffffa27.w        ; Sync character
+	move.b	(a0)+,$fffffa29.w        ; USART control
+	move.b	(a0)+,$fffffa2b.w        ; Receiver status
+	move.b	(a0)+,$fffffa2d.w        ; Transmitter status
+	move.b	(a0)+,$fffffa2f.w        ; USART data
 	
-	move.b	(a0)+,$ffff8201.w
+	move.b	(a0)+,$ffff8201.w        ; Restore screenaddress
 	move.b	(a0)+,$ffff8203.w
 	move.b	(a0)+,$ffff820a.w
 	move.b	(a0)+,$ffff820d.w
 	
 	lea	Save_rest,a0                 ; Restore adresses parameters
-	move.l	(a0)+,$068.w
-	move.l	(a0)+,$070.w
-	move.l	(a0)+,$110.w
-	move.l	(a0)+,$114.w
-	move.l	(a0)+,$118.w
-	move.l	(a0)+,$120.w
-	move.l	(a0)+,$134.w
-	move.l	(a0)+,$484.w
+	move.l	(a0)+,$068.w             ; HBL
+	move.l	(a0)+,$070.w             ; VBL
+	move.l	(a0)+,$110.w             ; TIMER D
+	move.l	(a0)+,$114.w             ; TIMER C
+	move.l	(a0)+,$118.w             ; ACIA
+	move.l	(a0)+,$120.w             ; TIMER B
+	move.l	(a0)+,$134.w             ; TIMER A
+	move.l	(a0)+,$484.w             ; Conterm
 
 	movem.l	(a0),d0-d7               ; Restore palette GEM system
 	movem.l	d0-d7,$ffff8240.w
@@ -477,36 +483,21 @@ Restore_st:
 
 	stop	#$2300
 
-	bsr	flush                        ; Restore keyboard and mouse
-	move.b	#8,d0
-	bsr	setkeyboard	
-	bsr	show_mouse
+	moveq #$11,d0                    ; Resume keyboard
+	bsr	sendToKeyboard
 
-Old_Resol:                         ; Restore Old Screen & Resolution
-	move	#0,-(sp)
-Old_Screen:
-	move.l	#0,-(sp)
-	move.l	(sp),-(sp)
-	move	#5,-(sp)
+	moveq #$8,d0                     ; Restore mouse
+	bsr	sendToKeyboard               ;
+
+	bsr	flush                        ; Restore keyboard
+
+	move.b	save_refresh,$ffff820a.w ; Restore refreshrate
+
+	move.w	#37,-(sp)                ; VSYNC()
 	trap	#14
-	lea	12(sp),sp
+	addq.l	#2,sp
 
-	move.w	#$25,-(a7)               ; VSYNC
-	trap	#14
-	addq.w	#2,a7
-
-	rts
-
-hide_mouse:
-	movem.l	d0-d2/a0-a2,-(sp)
-	dc.w	$a00a
-	movem.l	(sp)+,d0-d2/a0-a2
-	rts
-
-show_mouse:
-	movem.l	d0-d2/a0-a2,-(sp)
-	dc.w	$A009
-	movem.l	(sp)+,d0-d2/a0-a2
+	move.b	save_resolution,$ffff8260.w ; Restore old resolution
 	rts
 
 flush:	lea	$FFFFFC00.w,a0
@@ -515,7 +506,7 @@ flush:	lea	$FFFFFC00.w,a0
 	bne.s	.flush
 	rts
 
-setkeyboard:
+sendToKeyboard:
 .wait:	btst	#1,$fffffc00.w
 	beq.s	.wait
 	move.b	d0,$FFFFFC02.w
@@ -572,7 +563,7 @@ wart:	move.l	d0,-(sp)
 	SECTION	DATA
 ******************************************************************
 
-Default_palette:	
+Default_palette:
 	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
 	dc.w	$777,$111,$222,$333,$444,$555,$666,$777
 
@@ -596,13 +587,15 @@ bss_start:
 
 
 * <
-Vsync:	ds.w	1
-Save_stack:	ds.l	1
+Vsync:
+	ds.w	1
+
+Save_stack:
+	ds.l	1
 
 Save_all:
-	ds.b	8	* Mfp : fa03.w -> fa19.w
-	ds.b	4	* Mfp : fa1b.w -> fa21.w
-	ds.b	4	* Video : f8201.w -> f820d.w
+	ds.b	16 * MFP
+	ds.b	4	 * Video : f8201.w -> f820d.w
 
 Save_rest:
 	ds.l	1	* Autovector (HBL)
@@ -613,9 +606,18 @@ Save_rest:
 	ds.l	1	* Timer B (HBL)
 	ds.l	1	* Timer A
 	ds.l	1	* Output Bip Bop
+
 Palette:
-	ds.w	16	* Palette
-mstart:	ds.l	1 * location memory adress
+	ds.w	16 * Palette System
+
+save_resolution:
+	ds.b	1 * Resolution Screen
+
+save_refresh:
+	ds.w	1 * Refreshrate
+
+mstart:
+	ds.l	1 * Location memory adress
 
 bss_end:
 

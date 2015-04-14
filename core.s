@@ -1,10 +1,10 @@
 ***************************************
 * // XXXXXXX.PRG                   // *
 ***************************************
-* // Asm Intro Code Atari ST v0.41a// *
+* // Asm Intro Code Atari ST v0.41b// *
 * // by Zorro 2/NoExtra (03/11/11) // *
 * // http://www.noextra-team.com/  // *
-* // Malloc of screen adress.      // *
+* // Access memory of screen adress. // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
@@ -114,8 +114,6 @@ next_key:
 SORTIE:
 	bsr	Restore_st                   ; Restore all registers
 
-	bsr	DeInit_screens               ; Restore allocation memory
-
 	move.l	Save_stack,-(sp)         ; Restore user Mode
 	move.w	#32,-(sp)
 	trap	#1
@@ -142,7 +140,7 @@ Init:	movem.l	d0-d7/a0-a6,-(a7)
 	lea	Vbl(pc),a0                   ; Launch VBL
 	move.l	a0,$70.w
 
-	lea	Default_palette(pc),a0       ; Put palette
+	lea	Default_palette,a0       ; Put palette
 	lea	$ffff8240.w,a1               ;
 	movem.l	(a0),d0-d7               ;
 	movem.l	d0-d7,(a1)               ;
@@ -162,7 +160,7 @@ SIZE_OF_SCREEN equ 160*250
 SIZE_OF_SCREEN equ 160*300
  ENDC
  IFEQ	NO_BORDER
-SIZE_OF_SCREEN equ 160*204
+SIZE_OF_SCREEN equ 160*200
  ENDC
 
 TOTAL_NUMBER_SCREEN equ 2
@@ -171,15 +169,7 @@ TOTAL_SIZEOF_SCREEN equ TOTAL_NUMBER_SCREEN*SIZE_OF_SCREEN
 Init_screens:
 	movem.l	d0-d7/a0-a6,-(a7)
 
-	move.l	#(TOTAL_SIZEOF_SCREEN+256),-(sp)   ; Malloc()
-	move.w	#72,-(sp)                ; Screen memory
-	trap	#1                         ;
-	addq.l	#6,sp                    ;
-	tst.l	d0                         ;
-	beq	SORTIE                       ; Test memory
-
-	move.l	d0,mstart                ; Keep the adress for Mfree()
-
+	move.l	#Screen,d0
 	move.l	d0,d1
 	add.w	#256,d0                    ; Make screens
 	clr.b	d0                         ; Even by 256 bytes
@@ -202,17 +192,6 @@ Init_screens:
 	dbf	    d7,*-12                  ;
 
 	movem.l	(a7)+,d0-d7/a0-a6
-	rts
-
-DeInit_screens:
-	movem.l	d0-d7/a0-a6,-(a7)
-
-	move.l	#mstart,-(sp)            ; MFree()
-	move.w	#73,-(sp)                ; Screen memory
-	trap	#1                         ;
-	addq.l	#6,sp                    ;
-
-	movem.l	(a7)+,d0-d7/a0-a6	
 	rts
 
 physique:	ds.l TOTAL_NUMBER_SCREEN ; Nombre d'écrans déclarés
@@ -620,6 +599,25 @@ mstart:
 	ds.l	1 * Location memory adress
 
 bss_end:
+
+Screen:
+	ds.b	256
+* 1
+	ds.b	160*200
+	IFEQ	BOTTOM_BORDER
+	ds.b	160*50
+	ENDC
+	IFEQ	TOPBOTTOM_BORDER
+	ds.b	160*100
+	ENDC
+* 2
+	ds.b	160*200
+	IFEQ	BOTTOM_BORDER
+	ds.b	160*50
+	ENDC
+	IFEQ	TOPBOTTOM_BORDER
+	ds.b	160*100
+	ENDC
 
 	SECTION	TEXT
 
