@@ -2,7 +2,7 @@
 * xxxxxxx.PRG *
 ***************
 
-* // Intro Code version 0.31	// *
+* // Intro Code version 0.35	// *
 * // Original code : 		// *
 * // Gfx logo 	   : 		// *
 * // Gfx font      : 		// *
@@ -21,7 +21,10 @@
 	SECTION	TEXT
 
 ***********************************************************
-BOTTOM_BORDER	equ 0	  ; Using the bottom overscan
+BOTTOM_BORDER	equ 1	  ; Using the bottom overscan
+			  ; 0 = I use it and 1 = no need !
+TOPBOTTOM_BORDER equ 0	  ; Using the top and bottom overscan
+													; WARNING : don't use both !!!
 			  ; 0 = I use it and 1 = no need !
 PATTERN		equ $1 	  ; To see the screen plan
 			  ; put $0 to see nothing
@@ -115,7 +118,8 @@ MainNext:
 *                                              *
 ************************************************
 
-Vbl:	movem.l	d0-d7/a0-a6,-(a7)
+Vbl:
+*	movem.l	d0-d7/a0-a6,-(a7)
 
 	st	Vsync
 
@@ -125,9 +129,19 @@ Vbl:	movem.l	d0-d7/a0-a6,-(a7)
 	move.b	#8,$fffffa1b.w
 	ENDC
 
+	IFEQ	TOPBOTTOM_BORDER
+	;move.l	a0,-(a7)
+	clr.b	(tacr).w		; stop timer A
+	lea	topbord(pc),a0
+	move.l	a0,$134.w		; timer A vector
+	move.b	#99,(tadr).w		; countdown value for timer A
+	move.b	#4,(tacr).w		; delay mode, clock divided by 50
+	;move.l	(a7)+,a0
+	ENDC
+
 	jsr 	(MUSIC+8)			; call music
 
-	movem.l	(a7)+,d0-d7/a0-a6
+*	movem.l	(a7)+,d0-d7/a0-a6
 	rte
 
 Wait_vbl:
@@ -226,6 +240,20 @@ Save_and_init_a_st:
 	bset	#0,$fffffa13.w	* Timer B on
 	ENDC
 
+	IFEQ	TOPBOTTOM_BORDER
+	move.b	#%00100000,(iera).w	; enable timer A
+	move.b	#%00100000,(imra).w
+	and.b	#%00010000,(ierb).w	; disable all except timer D
+	and.b	#%00010000,(imrb).w
+	or.b	#%01000000,(ierb).w	; enable keyboard
+	or.b	#%01000000,(imrb).w
+	clr.b	(tacr).w		; timer A off
+	lea	my_hbl(pc),a0
+	move.l	a0,$68.w		; horizontal blank
+	lea	topbord(pc),a0
+	move.l	a0,$134.w		; timer A vector
+	ENDC
+	
 	stop	#$2300
 
 	clr.b	$484.w		; No bip,no repeat.
@@ -261,6 +289,52 @@ Over_rout:
 	move.b	#$2,$ffff820a.w * 50 Hz !
 
 	rte
+	ENDC
+
+	IFEQ	TOPBOTTOM_BORDER
+***************************************************************
+*                                                             *
+*          < Here is the top and lower border rout >          *
+*                                                             *
+***************************************************************
+herz = $FFFF820A
+iera = $FFFFFA07
+ierb = $FFFFFA09
+isra = $FFFFFA0F
+isrb = $FFFFFA11
+imra = $FFFFFA13
+imrb = $FFFFFA15
+tacr = $FFFFFA19
+tadr = $FFFFFA1F
+
+my_hbl	rte
+
+topbord	move.l	a0,-(a7)
+	move	#$2100,sr
+	stop	#$2100			; sync with interrupt
+	clr.b	(tacr).w		; stop timer A
+	dcb.w	78,$4E71		; 78 nops
+	clr.b	(herz).w		; 60 Hz
+	dcb.w	18,$4E71		; 18 nops
+	move.b	#2,(herz).w		; 50 Hz
+	lea	botbord(pc),a0
+	move.l	a0,$134.w		; timer A vector
+	move.b	#178,(tadr).w		; countdown value for timer A
+	move.b	#7,(tacr).w		; delay mode, clock divided by 200
+	move.l	(a7)+,a0
+	bclr.b	#5,(isra).w		; clear end of interrupt flag
+	rte
+
+botbord	move	#$2100,sr
+	stop	#$2100			; sync with interrupt
+	clr.b	(tacr).w		; stop timer A
+	dcb.w	78,$4E71		; 78 nops
+	clr.b	(herz).w		; 60 Hz
+	dcb.w	18,$4E71		; 18 nops
+	move.b	#2,(herz).w		; 50 Hz
+	bclr.b	#5,(isra).w
+	rte
+	
 	ENDC
 	
 ***************************************************************
@@ -403,7 +477,6 @@ clear_bss:
 	blt.s	.loop
 	rts
 
-
 ************************************************
 *           FADING WHITE TO BLACK              *
 *         (Don't use VBL with it !)            *
@@ -434,7 +507,7 @@ wart:	move.l	d0,-(sp)
 ************************************************
 
 
-			
+
 ******************************************************************
 	SECTION	DATA
 ******************************************************************
@@ -496,6 +569,9 @@ start1:
 	IFEQ	BOTTOM_BORDER
 	ds.b	160*50
 	ENDC
+	IFEQ	TOPBOTTOM_BORDER
+	ds.b	160*90
+	ENDC
 Zorro_screen1_len:	equ	*-start1
 
 Zorro_scr2:	ds.l	1
@@ -506,6 +582,9 @@ start2:
 	ds.b	160*200
 	IFEQ	BOTTOM_BORDER
 	ds.b	160*50
+	ENDC
+	IFEQ	TOPBOTTOM_BORDER
+	ds.b	160*90
 	ENDC
 Zorro_screen2_len:	equ	*-start2
 
