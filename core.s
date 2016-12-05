@@ -1,16 +1,16 @@
 ***************************************
 * // XXXXXXXX.PRG                  // *
 ***************************************
-* // Asm Intro Code Atari ST v0.43 // *
-* // by Zorro 2/NoExtra (07/07/15) // *
+* // Asm Intro Code Atari ST v0.44 // *
+* // by Zorro 2/NoExtra (01/12/16) // *
 * // http://www.noextra-team.com/  // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
 * // Gfx font      :               // *
-* // Music         :               // *
-* // Release date  : xx/xx/2015    // *
-* // Update date   : xx/xx/2015    // *
+* // Music         : JEDI          // *
+* // Release date  : xx/xx/2016    // *
+* // Update date   : xx/xx/2016    // *
 ***************************************
   OPT c+ ; Case sensitivity ON        *
   OPT d- ; Debug OFF                  *
@@ -20,26 +20,30 @@
 ***************************************
 
 ***************************************************************
-	SECTION	TEXT                                             // *
+	SECTION	TEXT                                           // *
 ***************************************************************
 
-**************************** OVERSCAN ******************************
-BOTTOM_BORDER    equ 1         ; Use the bottom overscan           *
-TOPBOTTOM_BORDER equ 1         ; Use the top and bottom overscan   *
-NO_BORDER        equ 0         ; Use a standard Low-screen         *
-********************************************************************
-PATTERN          equ $00010001 ; Wears Screens with a plan pattern *
-SEEMYVBL         equ 0         ; See CPU used if you press ALT key *
-ERROR_SYS        equ 0         ; Manage Errors System              *
-FADE_INTRO       equ 1         ; Fade White to black palette       *
-TEST_STE         equ 1         ; Code only for Atari STE machine   *
-STF_INITS        equ 0         ; STF compatibility MODE            *
-********************************************************************
-*              Notes : 0 = I use it / 1 = no need !                *
-********************************************************************
+************************* OVERSCAN MODE ******************************
+BOTTOM_BORDER    equ 1           ; Use the bottom overscan           *
+TOPBOTTOM_BORDER equ 1           ; Use the top and bottom overscan   *
+NO_BORDER        equ 0           ; Use a standard Low-screen         *
+***************************** SCREENS ********************************
+PATTERN          equ $00010001   ; Fill Screens with a plan pattern  *
+ONE_SCREEN       equ 0           ; One Screen used                   *
+TWO_SCREENS      equ 1           ; Two Screens used                  *
+NB_OF_SCREEN     equ TWO_SCREENS ; Number of Screen used             *
+*************************** PARAMETERS *******************************
+SEEMYVBL         equ 0           ; See CPU used if you press ALT key *
+ERROR_SYS        equ 0           ; Manage Errors System              *
+FADE_INTRO       equ 1           ; Fade White to black palette       *
+TEST_STE         equ 1           ; Code only for Atari STE machine   *
+STF_INITS        equ 0           ; STF compatibility MODE            *
+**********************************************************************
+*              Notes : 0 = I use it / 1 = no need !                  *
+**********************************************************************
 
 Begin:
-	move    SR,d0                    ; Test supervisor mode
+	move    SR,d0                    ; Test supervisor mode detected ?
 	btst    #13,d0                   ; Specialy for relocation
 	bne.s   mode_super_yet           ; programs
 	move.l  4(sp),a5                 ; Address to basepage
@@ -60,7 +64,7 @@ Begin:
 	trap    #1                       ;
 	lea     12(sp),sp                ;
 
-	clr.l   -(sp)                    ; Supervisor mode
+	clr.l   -(sp)                    ; Supervisor mode set
 	move.w  #32,-(sp)                ;
 	trap    #1                       ;
 	addq.l  #6,sp                    ;
@@ -76,8 +80,6 @@ mode_super_yet:
 	beq	EXIT_PRG                     ;
  ENDC
 
-	bsr	wait_for_drive               ; Stop floppy driver
-
 	bsr	clear_bss                    ; Clean BSS stack
 	
 	bsr	Save_and_init_st             ; Save system parameters
@@ -88,16 +90,15 @@ mode_super_yet:
 	jsr	Multi_boot                   ; Multi Atari Boot code from LEONARD/OXG
  ENDC
 
-	bsr	Inits                        ; Initialisations
+	bsr	Inits                        ; Other Initialisations
 
 **************************** MAIN LOOP ************************>
 
 default_loop:
-
 	bsr	Wait_vbl                     ; Waiting after the VBL
 
  IFEQ	SEEMYVBL
-	clr.b	$ffff8240.w                ; init line of CPU
+	clr.b $ffff8240.w                ; init line of CPU
  ENDC
 
 * < Put your code here >
@@ -105,7 +106,8 @@ default_loop:
 
 * <
 
-	lea     physique(pc),a0          ; Swapping two Screens
+ IFGT NB_OF_SCREEN                 * Test if more than one Screen
+	lea     physique(pc),a0          ; Swapping Screens
 	move.l	(a0),d0                  ;
 	move.l	4(a0),(a0)+              ;
 	move.l	d0,(a0)                  ;
@@ -113,15 +115,16 @@ default_loop:
 	move    d0,-(sp)                 ;
 	move.b  (sp)+,d0                 ;
 	move.l  d0,$ffff8200.w           ;
-
- IFEQ	SEEMYVBL
-	cmp.b	#$38,$fffffc02.w           ; ALT key pressed ?
-	bne.s	.next_key                  ;
-	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
-.next_key:                         ;
  ENDC
 
-	cmp.b	#$39,$fffffc02.w           ; SPACE key pressed ?
+ IFEQ	SEEMYVBL
+	cmp.b #$38,$fffffc02.w           ; ALT key pressed ?
+	bne.s .next_key                  ;
+	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
+.next_key:                           ;
+ ENDC
+
+	cmp.b #$39,$fffffc02.w           ; SPACE key pressed ?
 	bne	default_loop
 
 **************************** MAIN LOOP ************************<
@@ -147,16 +150,16 @@ Inits:
 	movem.l	d0-d7/a0-a6,-(a7)
 
  IFEQ	FADE_INTRO
-	bsr	fadein                       ; Fading white to black
+	bsr	fadein                       ; Fading White to Black Screen
  ENDC
 
-	moveq	#1,d0                      ; Choice of the music (1 is default)
+	moveq #1,d0                      ; Choice of the music (1 is default)
 	jsr	MUSIC+0                      ; Init SNDH music
 
 	lea	Vbl(pc),a0                   ; Launch VBL
 	move.l	a0,$70.w                 ;
 
-	lea	Default_palette,a0           ; Put palette
+	lea	Default_palette,a0           ; Put Default palette
 	lea	$ffff8240.w,a1               ;
 	movem.l	(a0),d0-d7               ;
 	movem.l	d0-d7,(a1)               ;
@@ -170,55 +173,61 @@ Inits:
 *                                                             *
 ***************************************************************
  IFEQ	BOTTOM_BORDER
-SIZE_OF_SCREEN equ 160*250         ; Screen + Lower Border size
+SIZE_OF_SCREEN equ 160*250         ; Size of Screen + Lower Border Size
  ENDC
  IFEQ	TOPBOTTOM_BORDER
-SIZE_OF_SCREEN equ 160*300         ; Screen + Top & Lower Border size
+SIZE_OF_SCREEN equ 160*300         ; Size of Screen + Top & Lower Border Size
  ENDC
  IFEQ	NO_BORDER
-SIZE_OF_SCREEN equ 160*200         ; Only Screen size in Low Resolution
+SIZE_OF_SCREEN equ 160*200         ; Only Screen Size in Low Resolution
  ENDC
 
 Init_screens:
 	movem.l	d0-d7/a0-a6,-(a7)
 
-	move.l	#Screen_1,d0             ; Set physical Screen #1
-	add.w	#$ff,d0                    ;
-	sf	d0                           ;
-	move.l	d0,physique              ;
+	move.l #Screen+256,d0            ; Set physical Screen #1
+	clr.b d0                         ;
+	move.l d0,physique               ;
 
-	move.l	#Screen_2,d0             ; Set logical Screen #2
-	add.w	#$ff,d0                    ;
-	sf	d0                           ;
-	move.l	d0,physique+4            ;
-
-	move.l	physique(pc),a0          ; Put PATTERN in two Screens
-	move.l	physique+4(pc),a1        ;
+	move.l	physique(pc),a0          ; Fill PATTERN in Screen #1
 	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
 	move.l  #PATTERN,(a0)+           ;
-	move.l  #PATTERN,(a1)+           ;
-	dbf	    d7,*-12                  ;
+	dbf	    d7,*-6                   ;
 
+ IFGT NB_OF_SCREEN                 * Test if more than one Screen
+	add.l #SIZE_OF_SCREEN,d0         ; Set logical Screen #2
+	clr.b d0                         ;
+	move.l d0,physique+4             ;
+
+	move.l	physique+4(pc),a0        ; Fill PATTERN in Screen #2
+	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
+	move.l  #PATTERN,(a0)+           ;
+	dbf	    d7,*-6                   ;
+ ENDC
+
+ IFEQ NB_OF_SCREEN                 * Test if one Screen to display
 	move.l	physique(pc),d0          ; Put physical Screen
 	move.b	d0,d1                    ;
-	lsr.w	#8,d0                      ;
+	lsr.w #8,d0                      ;
 	move.b	d0,$ffff8203.w           ;
-	swap	d0                         ;
+	swap d0                          ;
 	move.b	d0,$ffff8201.w           ;
 	move.b	d1,$ffff820d.w           ;
+ ENDC
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
 physique:
-	ds.l 2                           ; Number of screens declared
+	ds.l (NB_OF_SCREEN+1)            ; Number of screens declared
 
 ***************************************************************
 *                                                             *
 *                        Vbl Routines                         *
 *                                                             *
 ***************************************************************
-Vbl:	st	Vsync                    ; Synchronisation
+Vbl:
+	st	Vsync                        ; Synchronisation
 
 	movem.l	d0-d7/a0-a6,-(a7)
 
@@ -232,7 +241,7 @@ Vbl:	st	Vsync                    ; Synchronisation
 
  IFEQ	TOPBOTTOM_BORDER
 	move.l	a0,-(a7)
-	clr.b	(tacr).w                   ; Stop timer A
+	clr.b (tacr).w                   ; Stop timer A
 	lea	topbord(pc),a0               ; Launch HBL
 	move.l	a0,$134.w                ; Timer A vector
 	move.b	#99,(tadr).w             ; Countdown value for timer A
@@ -244,17 +253,17 @@ Vbl:	st	Vsync                    ; Synchronisation
 * // Declarations here ...
  ENDC
 
-	jsr 	(MUSIC+8)                  ; Play SNDH music
+	jsr (MUSIC+8)                    ; Play SNDH music
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rte
 
-Wait_vbl:                          ; Test Synchronisation
-	move.l	a0,-(a7)                 ;
+Wait_vbl:
+	move.l	a0,-(a7)                 ; Test Synchronisation
 	lea	Vsync,a0                     ;
 	sf	(a0)                         ;
 .loop:	tst.b	(a0)                 ;
-	beq.s	.loop                      ;
+	beq.s .loop                      ;
 	move.l	(a7)+,a0                 ;
 	rts
 
@@ -274,12 +283,12 @@ Wait_vbl:                          ; Test Synchronisation
 *                                                             *
 ***************************************************************
 Over_rout:
-	sf	$fffffa21.w                  ; Stop Timer B
-	sf	$fffffa1b.w                  ;
-	dcb.w	95,$4e71                   ; 95 nops	Wait line end
+	sf $fffffa21.w                   ; Stop Timer B
+	sf $fffffa1b.w                   ;
+	dcb.w 95,$4e71                   ; 95 nops - Wait line end
 	sf	$ffff820a.w                  ; Modif Frequency 60 Hz !
-	dcb.w	28,$4e71                   ; 28 nops	Wait line end
-	move.b	#$2,$ffff820a.w          ; 50 Hz !
+	dcb.w 28,$4e71                   ; 28 nops - Wait line end
+	move.b #$2,$ffff820a.w           ; 50 Hz !
 	rte
  ENDC
 
@@ -298,35 +307,33 @@ imrb = $FFFFFA15
 tacr = $FFFFFA19
 tadr = $FFFFFA1F
 
+topbord:
+	move.l	a0,-(a7)
+	move #$2100,SR
+	stop #$2100                    ; Sync with interrupt
+	clr.b (tacr).w                 ; Stop timer A
+	dcb.w 78,$4E71                 ; 78 nops
+	clr.b (herz).w                 ; 60 Hz
+	dcb.w 18,$4E71                 ; 18 nops
+	move.b #2,(herz).w             ; 50 Hz
+	lea	botbord(pc),a0
+	move.l a0,$134.w               ; Timer A vector
+	move.b #178,(tadr).w           ; Countdown value for timer A
+	move.b #7,(tacr).w             ; Delay mode, clock divided by 200
+	move.l (a7)+,a0                ;
+	bclr.b #5,(isra).w             ; Clear end of interrupt flag
 my_hbl:
 	rte
 
-topbord:
-	move.l	a0,-(a7)
-	move	#$2100,SR
-	stop	#$2100                     ; Sync with interrupt
-	clr.b	(tacr).w                   ; Stop timer A
-	dcb.w	78,$4E71                   ; 78 nops
-	clr.b	(herz).w                   ; 60 Hz
-	dcb.w	18,$4E71                   ; 18 nops
-	move.b	#2,(herz).w              ; 50 Hz
-	lea	botbord(pc),a0
-	move.l	a0,$134.w                ; Timer A vector
-	move.b	#178,(tadr).w            ; Countdown value for timer A
-	move.b	#7,(tacr).w              ; Delay mode, clock divided by 200
-	move.l	(a7)+,a0                 ;
-	bclr.b	#5,(isra).w              ; Clear end of interrupt flag
-	rte
-
 botbord:
-	move	#$2100,SR                  ;
-	stop	#$2100                     ; sync with interrupt
-	clr.b	(tacr).w                   ; stop timer A
-	dcb.w	78,$4E71                   ; 78 nops
-	clr.b	(herz).w                   ; 60 Hz
-	dcb.w	18,$4E71                   ; 18 nops
-	move.b	#2,(herz).w              ; 50 Hz
-	bclr.b	#5,(isra).w              ;
+	move #$2100,SR                 ;
+	stop #$2100                    ; sync with interrupt
+	clr.b (tacr).w                 ; stop timer A
+	dcb.w 78,$4E71                 ; 78 nops
+	clr.b (herz).w                 ; 60 Hz
+	dcb.w 18,$4E71                 ; 18 nops
+	move.b #2,(herz).w             ; 50 Hz
+	bclr.b #5,(isra).w             ;
 	rte
  ENDC
 
@@ -336,44 +343,43 @@ botbord:
 *                                                             *
 ***************************************************************
 Save_and_init_st:
-
 	moveq #$13,d0                    ; Pause keyboard
 	bsr	sendToKeyboard               ;
 
 	move #$2700,SR                   ; Interrupts OFF
 		
 	lea	Save_all,a0                  ; Save adresses parameters
-	move.b	$fffffa01.w,(a0)+        ; Datareg
-	move.b	$fffffa03.w,(a0)+        ; Active edge
-	move.b	$fffffa05.w,(a0)+        ; Data direction
-	move.b	$fffffa07.w,(a0)+        ; Interrupt enable A
-	move.b	$fffffa13.w,(a0)+        ; Interupt Mask A
-	move.b	$fffffa09.w,(a0)+        ; Interrupt enable B
-	move.b	$fffffa15.w,(a0)+        ; Interrupt mask B
-	move.b	$fffffa17.w,(a0)+        ; Automatic/software end of interupt
-	move.b	$fffffa19.w,(a0)+        ; Timer A control
-	move.b	$fffffa1b.w,(a0)+        ; Timer B control
-	move.b	$fffffa1d.w,(a0)+        ; Timer C & D control
-	move.b	$fffffa27.w,(a0)+        ; Sync character
-	move.b	$fffffa29.w,(a0)+        ; USART control
-	move.b	$fffffa2b.w,(a0)+        ; Receiver status
-	move.b	$fffffa2d.w,(a0)+        ; Transmitter status
-	move.b	$fffffa2f.w,(a0)+        ; USART data
-
-	move.b	$ffff8201.w,(a0)+        ; Save Video addresses
-	move.b	$ffff8203.w,(a0)+        ;
-	move.b	$ffff820a.w,(a0)+        ;
-	move.b	$ffff820d.w,(a0)+        ;
+	move.b $fffffa01.w,(a0)+         ; Datareg
+	move.b $fffffa03.w,(a0)+         ; Active edge
+	move.b $fffffa05.w,(a0)+         ; Data direction
+	move.b $fffffa07.w,(a0)+         ; Interrupt enable A
+	move.b $fffffa13.w,(a0)+         ; Interupt Mask A
+	move.b $fffffa09.w,(a0)+         ; Interrupt enable B
+	move.b $fffffa15.w,(a0)+         ; Interrupt mask B
+	move.b $fffffa17.w,(a0)+         ; Automatic/software end of Interupt
+	move.b $fffffa19.w,(a0)+         ; Timer A control
+	move.b $fffffa1b.w,(a0)+         ; Timer B control
+	move.b $fffffa1d.w,(a0)+         ; Timer C & D control
+	move.b $fffffa27.w,(a0)+         ; Sync character
+	move.b $fffffa29.w,(a0)+         ; USART control
+	move.b $fffffa2b.w,(a0)+         ; Receiver status
+	move.b $fffffa2d.w,(a0)+         ; Transmitter status
+	move.b $fffffa2f.w,(a0)+         ; USART data
+          
+	move.b $ffff8201.w,(a0)+         ; Save Video addresses
+	move.b $ffff8203.w,(a0)+         ;
+	move.b $ffff820a.w,(a0)+         ;
+	move.b $ffff820d.w,(a0)+         ;
 	
 	lea	Save_rest,a0                 ; Save adresses parameters
-	move.l	$068.w,(a0)+             ; HBL
-	move.l	$070.w,(a0)+             ; VBL
-	move.l	$110.w,(a0)+             ; TIMER D
-	move.l	$114.w,(a0)+             ; TIMER C
-	move.l	$118.w,(a0)+             ; ACIA
-	move.l	$120.w,(a0)+             ; TIMER B
-	move.l	$134.w,(a0)+             ; TIMER A
-	move.l	$484.w,(a0)+             ; Conterm
+	move.l $068.w,(a0)+              ; HBL
+	move.l $070.w,(a0)+              ; VBL
+	move.l $110.w,(a0)+              ; TIMER D
+	move.l $114.w,(a0)+              ; TIMER C
+	move.l $118.w,(a0)+              ; ACIA
+	move.l $120.w,(a0)+              ; TIMER B
+	move.l $134.w,(a0)+              ; TIMER A
+	move.l $484.w,(a0)+              ; Conterm
 
 	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
 	movem.l	d0-d7,(a0)
@@ -382,57 +388,57 @@ Save_and_init_st:
 	bsr	INPUT_TRACE_ERROR            ; Save vectors list
  ENDC
 
-	clr.b	$fffffa07.w                ; Interrupt enable A (Timer-A & B)
-	clr.b	$fffffa09.w                ; Interrupt enable B (Timer-C & D)
-	clr.b	$fffffa13.w                ; Interrupt mask A (Timer-A & B)
-	clr.b	$fffffa15.w                ; Interrupt mask B (Timer-C & D)
-	clr.b	$fffffa19.w                ; Stop Timer A
-	clr.b	$fffffa1b.w                ; Stop Timer B
-	clr.b	$fffffa21.w                ; Timer B data at zero
-	clr.b	$fffffa1d.w                ; Stop Timer C & D
+	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
+	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
+	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
+	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
+	clr.b $fffffa19.w                ; Stop Timer A
+	clr.b $fffffa1b.w                ; Stop Timer B
+	clr.b $fffffa21.w                ; Timer B data at zero
+	clr.b $fffffa1d.w                ; Stop Timer C & D
 
  IFEQ	BOTTOM_BORDER
-	sf	$fffffa21.w                  ; Timer B data (number of scanlines to next interrupt)
-	sf	$fffffa1b.w                  ; Timer B control (event mode (HBL))
+	sf $fffffa21.w                   ; Timer B data (number of scanlines to next interrupt)
+	sf $fffffa1b.w                   ; Timer B control (event mode (HBL))
 	lea	Over_rout(pc),a0             ; Launch HBL
-	move.l	a0,$120.w                ;
-	bset	#0,$fffffa07.w             ; Timer B vector
-	bset	#0,$fffffa13.w             ; Timer B on
-	bclr	#3,$fffffa17.w             ; Automatic End-Interrupt hbl ON
+	move.l a0,$120.w                 ;
+	bset #0,$fffffa07.w              ; Timer B vector
+	bset #0,$fffffa13.w              ; Timer B on
+	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
  ENDC
 
  IFEQ	TOPBOTTOM_BORDER
-	move.b	#%00100000,(iera).w      ; Enable Timer A
-	move.b	#%00100000,(imra).w      ;
-	and.b	#%00010000,(ierb).w        ; Disable all except Timer D
-	and.b	#%00010000,(imrb).w        ;
-	or.b	#%01000000,(ierb).w        ; Enable keyboard
-	or.b	#%01000000,(imrb).w        ;
-	clr.b	(tacr).w                   ; Timer A off
+	move.b #%00100000,(iera).w       ; Enable Timer A
+	move.b #%00100000,(imra).w       ;
+	and.b #%00010000,(ierb).w        ; Disable all except Timer D
+	and.b #%00010000,(imrb).w        ;
+	or.b #%01000000,(ierb).w         ; Enable keyboard
+	or.b #%01000000,(imrb).w         ;
+	clr.b (tacr).w                   ; Timer A off
 	lea	my_hbl(pc),a0                ;
 	move.l	a0,$68.w                 ; Horizontal blank
 	lea	topbord(pc),a0               ;
-	move.l	a0,$134.w                ; Timer A vector
-	bclr	#3,$fffffa17.w             ; Automatic End-Interrupt hbl ON
+	move.l a0,$134.w                 ; Timer A vector
+	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
  ENDC
 
  IFEQ	NO_BORDER
 * // Code here....
  ENDC
 
-	stop	#$2300                     ; Interrupts ON
+	stop #$2300                      ; Interrupts ON
 
-	clr.b	$484.w                     ; No bip, no repeat
+	clr.b $484.w                     ; No bip, no repeat
 
-	move	#4,-(sp)                   ; Save & Change Resolution (GetRez)
-	trap	#14	                       ; Get Current Res.
-	addq.l	#2,sp                    ;
-	move	d0,Old_Resol+2             ; Save it
+	move #4,-(sp)                    ; Save & Change Resolution (GetRez)
+	trap #14	                     ; Get Current Res.
+	addq.l #2,sp                     ;
+	move d0,Old_Resol+2              ; Save it
 
-	move	#3,-(sp)                   ; Save Screen Address (Logical)
-	trap	#14                        ;
-	addq.l	#2,sp                    ;
-	move.l	d0,Old_Screen+2          ;
+	move #3,-(sp)                    ; Save Screen Address (Logical)
+	trap #14                         ;
+	addq.l #2,sp                     ;
+	move.l d0,Old_Screen+2           ;
 
 	moveq #$11,d0                    ; Resume keyboard
 	bsr	sendToKeyboard               ;
@@ -448,7 +454,6 @@ Save_and_init_st:
 	rts
 
 Restore_st:
-
 	bsr	black_out                    ; palette color to zero
 
 	moveq #$13,d0                    ; Pause keyboard
@@ -458,54 +463,54 @@ Restore_st:
 
 	jsr	MUSIC+4                      ; Stop SNDH music
 
-	lea       $ffff8800.w,a0         ; Cut sound
-	move.l    #$8000000,(a0)         ; Voice A
-	move.l    #$9000000,(a0)         ; Voice B
-	move.l    #$a000000,(a0)         ; Voice C
+	lea $ffff8800.w,a0               ; Cut sound
+	move.l #$8000000,(a0)            ; Voice A
+	move.l #$9000000,(a0)            ; Voice B
+	move.l #$a000000,(a0)            ; Voice C
 
  IFEQ	ERROR_SYS
 	bsr	OUTPUT_TRACE_ERROR           ; Restore vectors list
  ENDC
 
 	lea	Save_all,a0                  ; Restore adresses parameters
-	move.b	(a0)+,$fffffa01.w        ; Datareg
-	move.b	(a0)+,$fffffa03.w        ; Active edge
-	move.b	(a0)+,$fffffa05.w        ; Data direction
-	move.b	(a0)+,$fffffa07.w        ; Interrupt enable A
-	move.b	(a0)+,$fffffa13.w        ; Interupt Mask A
-	move.b	(a0)+,$fffffa09.w        ; Interrupt enable B
-	move.b	(a0)+,$fffffa15.w        ; Interrupt mask B
-	move.b	(a0)+,$fffffa17.w        ; Automatic/software end of interupt
-	move.b	(a0)+,$fffffa19.w        ; Timer A control
-	move.b	(a0)+,$fffffa1b.w        ; Timer B control
-	move.b	(a0)+,$fffffa1d.w        ; Timer C & D control
-	move.b	(a0)+,$fffffa27.w        ; Sync character
-	move.b	(a0)+,$fffffa29.w        ; USART control
-	move.b	(a0)+,$fffffa2b.w        ; Receiver status
-	move.b	(a0)+,$fffffa2d.w        ; Transmitter status
-	move.b	(a0)+,$fffffa2f.w        ; USART data
-	
-	move.b	(a0)+,$ffff8201.w        ; Restore Video addresses
-	move.b	(a0)+,$ffff8203.w        ;
-	move.b	(a0)+,$ffff820a.w        ;
-	move.b	(a0)+,$ffff820d.w        ;
+	move.b (a0)+,$fffffa01.w         ; Datareg
+	move.b (a0)+,$fffffa03.w         ; Active edge
+	move.b (a0)+,$fffffa05.w         ; Data direction
+	move.b (a0)+,$fffffa07.w         ; Interrupt enable A
+	move.b (a0)+,$fffffa13.w         ; Interupt Mask A
+	move.b (a0)+,$fffffa09.w         ; Interrupt enable B
+	move.b (a0)+,$fffffa15.w         ; Interrupt mask B
+	move.b (a0)+,$fffffa17.w         ; Automatic/software end of interupt
+	move.b (a0)+,$fffffa19.w         ; Timer A control
+	move.b (a0)+,$fffffa1b.w         ; Timer B control
+	move.b (a0)+,$fffffa1d.w         ; Timer C & D control
+	move.b (a0)+,$fffffa27.w         ; Sync character
+	move.b (a0)+,$fffffa29.w         ; USART control
+	move.b (a0)+,$fffffa2b.w         ; Receiver status
+	move.b (a0)+,$fffffa2d.w         ; Transmitter status
+	move.b (a0)+,$fffffa2f.w         ; USART data
+	                                 
+	move.b (a0)+,$ffff8201.w         ; Restore Video addresses
+	move.b (a0)+,$ffff8203.w         ;
+	move.b (a0)+,$ffff820a.w         ;
+	move.b (a0)+,$ffff820d.w         ;
 	
 	lea	Save_rest,a0                 ; Restore adresses parameters
-	move.l	(a0)+,$068.w             ; HBL
-	move.l	(a0)+,$070.w             ; VBL
-	move.l	(a0)+,$110.w             ; TIMER D
-	move.l	(a0)+,$114.w             ; TIMER C
-	move.l	(a0)+,$118.w             ; ACIA
-	move.l	(a0)+,$120.w             ; TIMER B
-	move.l	(a0)+,$134.w             ; TIMER A
-	move.l	(a0)+,$484.w             ; Conterm
+	move.l (a0)+,$068.w              ; HBL
+	move.l (a0)+,$070.w              ; VBL
+	move.l (a0)+,$110.w              ; TIMER D
+	move.l (a0)+,$114.w              ; TIMER C
+	move.l (a0)+,$118.w              ; ACIA
+	move.l (a0)+,$120.w              ; TIMER B
+	move.l (a0)+,$134.w              ; TIMER A
+	move.l (a0)+,$484.w              ; Conterm
 
 	movem.l	(a0),d0-d7               ; Restore palette GEM system
 	movem.l	d0-d7,$ffff8240.w        ;
 
 	bset.b #3,$fffffa17.w            ; Re-activate Timer C
 
-	stop	#$2300                     ; Interrupts ON
+	stop #$2300                      ; Interrupts ON
 
 	moveq #$11,d0                    ; Resume keyboard
 	bsr	sendToKeyboard               ;
@@ -518,15 +523,15 @@ Restore_st:
 Old_Resol:                         ; Restore Old Screen & Resolution
 	move	#0,-(sp)                   ;
 Old_Screen:                        ;
-	move.l	#0,-(sp)                 ;
-	move.l	(sp),-(sp)               ;
-	move	#5,-(sp)                   ;
-	trap	#14                        ;
+	move.l #0,-(sp)                  ;
+	move.l (sp),-(sp)                ;
+	move #5,-(sp)                    ;
+	trap #14                         ;
 	lea	12(sp),sp                    ;
 
-	move.w	#$25,-(a7)               ; VSYNC()
-	trap	#14                        ;
-	addq.w	#2,a7                    ;
+	move.w #$25,-(a7)                ; VSYNC()
+	trap #14                         ;
+	addq.w #2,a7                     ;
 	rts
 
 flush:                             ; Empty buffer
@@ -542,12 +547,6 @@ sendToKeyboard:                    ; Keyboard access
 	move.b	d0,$FFFFFC02.w
 	rts
 
-wait_for_drive:                    ; Floppy access
-	move.w	$ffff8604.w,d0
-	btst	#7,d0
-	bne.s	wait_for_drive
-	rts
-
 clear_bss:                         ; Init BSS stack with zero
 	lea	bss_start,a0
 .loop:	clr.l	(a0)+
@@ -556,15 +555,15 @@ clear_bss:                         ; Init BSS stack with zero
 	rts
 
 black_out:                         ; Clear Palette colors
-	moveq     #0,d0
-	moveq     #0,d1
-	moveq     #0,d2
-	moveq     #0,d3
-	moveq     #0,d4
-	moveq     #0,d5
-	moveq     #0,d6
-	moveq     #0,d7
-	movem.l   d0-d7,$ffff8240.w
+	moveq  #0,d0
+	moveq  #0,d1
+	moveq  #0,d2
+	moveq  #0,d3
+	moveq  #0,d4
+	moveq  #0,d5
+	moveq  #0,d6
+	moveq  #0,d7
+	movem.l d0-d7,$ffff8240.w
 	rts
 
 ***************************************************************
@@ -581,13 +580,13 @@ Default_palette:
 	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
 	dc.w	$777,$111,$222,$333,$444,$555,$666,$777
 
-* < Full data here >
+* << Full data here >>
 
 
 * <
 
-MUSIC:	* SNDH music -> Not compressed please !!!
-	incbin	"*.SND"
+MUSIC:
+	incbin "JEDIFUN.SND"            ; SNDH Music played at the VBL
 	even
 
 ***************************************************************
@@ -596,7 +595,7 @@ MUSIC:	* SNDH music -> Not compressed please !!!
 
 bss_start:
 
-* < Full data here >
+* << Full data here >>
 
 
 * <
@@ -608,33 +607,30 @@ Save_stack:
 	ds.l	1
 
 Save_all:
-	ds.b	16 * MFP
-	ds.b	4	 * Video : f8201.w -> f820d.w
+	ds.b 16 * MFP
+	ds.b 4	* Video : f8201.w -> f820d.w
 
 Save_rest:
-	ds.l	1	* Autovector (HBL)
-	ds.l	1	* Autovector (VBL)
-	ds.l	1	* Timer D (USART timer)
-	ds.l	1	* Timer C (200hz Clock)
-	ds.l	1	* Keyboard/MIDI (ACIA) 
-	ds.l	1	* Timer B (HBL)
-	ds.l	1	* Timer A
-	ds.l	1	* Output Bip Bop
+	ds.l 1	* Autovector (HBL)
+	ds.l 1	* Autovector (VBL)
+	ds.l 1	* Timer D (USART timer)
+	ds.l 1	* Timer C (200hz Clock)
+	ds.l 1	* Keyboard/MIDI (ACIA) 
+	ds.l 1	* Timer B (HBL)
+	ds.l 1	* Timer A
+	ds.l 1	* Output Bip Bop
 
 Palette:
-	ds.w	16 * Palette System
+	ds.w 16 * Palette System
 
 bss_end:
 
-Screen_1:
-	ds.b	256
-	ds.b	SIZE_OF_SCREEN
-Screen_2:
-	ds.b	256
-	ds.b	SIZE_OF_SCREEN
+Screen:
+	ds.b 256
+	ds.b SIZE_OF_SCREEN*(NB_OF_SCREEN+1)
 
 ***************************************************************
-	SECTION	TEXT                                             // *
+	SECTION	TEXT                                           // *
 ***************************************************************
 
  IFEQ	FADE_INTRO
@@ -644,7 +640,7 @@ Screen_2:
 *                  (Don't use VBL with it !)                  *
 *                                                             *
 ***************************************************************
-fadein:                            ; Fading effect
+fadein:
 	move.l	#$777,d0
 .deg:	bsr.s	wart
 	bsr.s	wart
@@ -733,7 +729,7 @@ execute_detournement:
 	cmp.b #$3b,$fffffc02.w
 	dbra d1,.loop
 
-	pea ESCAPE_PRG                        ; Put the return adress
+	pea ESCAPE_PRG                    ; Put the return adress
 	move.w #$2700,-(sp)               ; J'espère !!!...
 	addq.l #2,2(sp)                   ; 24/6
 	rte                               ; 20/5 => Total hors tempo = 78-> 80/20 nops
@@ -906,5 +902,5 @@ bCT60:
  ENDC
 
 ******************************************************************
-	END                                                         // *
+	END                                                       // *
 ******************************************************************

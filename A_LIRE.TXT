@@ -6,7 +6,7 @@ Le Framework a été testé sur STF/STE/MSTE et non testé suffisamment sur FALCON c
 
 Le Framework est compatible et compilable sous Devpack 2.x & 3.x.
 
-C'est la version 4.2 qui est en cours actuellement.
+C'est la version 4.4 qui est en cours actuellement.
 
 1/ Paramètres :
 ===============
@@ -48,14 +48,18 @@ Par défaut, il doit être initialisé comme ceci :
 PATTERN          equ $0
 Pour que les écrans soient bien éffacés sur 4 plans.
 
-b) Temps Cpu :
+b) Nombre d'écrans :
+--------------------
+Le parametre NB_OF_SCREEN permet d'utiliser un ou deux écrans dans votre démo. Par défaut il utilise un ecran physique et logique ce qui évite des effets de clipping.
+
+c) Temps Cpu :
 --------------
 Il permet de voir le temps pris (couleur violette) et le temps restant en noir en restant appuyé sur la touche ALTERNATE.
 SEEMYVBL         equ 0
 
 Il est conseillé de le mettre à "1" une fois le programme terminé...
 
-c) Erreurs systèmes :
+d) Erreurs systèmes :
 ---------------------
 Permet de récupérer le type d'erreur et de l'afficher via un code couleur.
 ERROR_SYS        equ 0
@@ -63,18 +67,30 @@ Le programme ne rend jamais la main.
 
 Il est conseillé de le mettre à "1" une fois le programme terminé...
 
-d) Fading :
+Source code from Mickaël Pointier - http://www.defence-force.com
+
+e) Fading :
 -----------
 Permet de passer de la couleur blanche du bureau au le noir.
 FADE_INTRO       equ 1
 
-e) Teste du STE :
+f) Teste du STE :
 -----------------
 Permet de bloquer le lancement du programme sur un STF et initialise aussi la partie Falcon pour une meilleure compatibilité.
 TEST_STE         equ 1
 
+g) Top comptabilité !
+---------------------
+J'ai rajouté dans le Framework la retro-comptabilité pour FALCON par Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
+
 2/ Principales fonctionnalités :
 ================================
+Assembler control with options of compilating : 
+- Case Sensitivity avec control des labels en Minuscule et Majuscule,
+- Pas de mode Debug activaté,
+- Aucune Optimsation du code à la compilation,
+- N'affiche pas les messages d'Alertes,
+- No Extend Debug mode activated in the final program.
 Détection du mode Superviseur.
 Allocation de mémoire pour l'exécution du programme.
 Performances :
@@ -98,14 +114,15 @@ Sécurité:
 ============================
 Pour implémenter du code dans le template :
 a) Il faut sélectionner le type d'OVERSCAN utilisé, par défaut on utilisera le paramètre NO_BORDER,
-b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 101,
-c) Ajouté vos routines à partir de la ligne 574,
-d) Ajouté vos données dans la section DATA à partir de la ligne 588,
-e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 603.
+b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 105,
+c) Ajouté vos routines à partir de la ligne 572,
+d) Ajouté vos données dans la section DATA à partir de la ligne 584,
+e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 599.
 Option Timer :
-a) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 241,
-b) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 406 & 409 et supprimer les 2 anciennes déclarations,
-c) Déclarer le code de la routine HBL à partir de la ligne 264.
+--------------
+a) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 426,
+b) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 253,
+c) Déclarer le code de la routine HBL à partir de la ligne 276.
 
 4/ Des exemples :
 =================
@@ -136,6 +153,6 @@ Et joint avec les fichiers :
 
 Voila !
 
-Frédéric Sagez aka Zorro 2 of NoExtra
+Frédéric Sagez aka Zorro 2^NoExtra.
 
-05/12/2011
+Update the 4 dec. 2016.
