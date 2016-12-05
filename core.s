@@ -647,7 +647,8 @@ fadein:
 	bsr.s	wart
 	lea	$ffff8240.w,a0
 	moveq	#15,d1
-.chg1:	move.w	d0,(a0)+
+.chg1:
+	move.w	d0,(a0)+
 	dbf	d1,.chg1
 	sub.w	#$111,d0
 	bne.s	.deg
