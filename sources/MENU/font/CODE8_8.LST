@@ -1,0 +1,51 @@
+REM -------------------------------------------------
+REM --- Encodage fonte 8x8 pixels in one bitplane ---
+REM -------------------------------------------------
+' Initialisations
+RESERVE 10000
+buffer%=MALLOC(2*8*16*3)
+buf%=buffer%
+width&=8
+height&=8
+' Charge le dessin de la fonte (PI1)
+CLS
+FILESELECT #"PICTURE","C:\MENU\font\*.PI1","",fontpic$
+BLOAD fontpic$,XBIOS(2)-34
+~XBIOS(6,L:XBIOS(2)-32)
+' Encodage de la fonte
+' --- Ligne 1 ---
+FOR n&=0 TO 152 STEP width&
+  adr%=XBIOS(2)+n&
+  adr2%=adr%+1
+  @encodage
+NEXT n&
+' --- Ligne 2 ---
+FOR n&=0 TO 152 STEP width&
+  adr%=XBIOS(2)+height&*160+n&
+  adr2%=adr%+1
+  @encodage
+NEXT n&
+' --- Ligne 3 ---
+FOR n&=0 TO 152 STEP width&
+  adr%=XBIOS(2)+2*height&*160+n&
+  adr2%=adr%+1
+  @encodage
+NEXT n&
+' Sauvegarde de la fonte
+BSAVE "C:\MENU\font\FONT8_8.DAT",buffer%,2*8*16*3
+~MFREE(buffer%)
+EDIT
+' Procdeure Encodage
+PROCEDURE encodage
+  FOR t&=0 TO height&-1
+    POKE buf%,PEEK(adr%)
+    ADD buf%,1
+    ADD adr%,160
+  NEXT t&
+  FOR t&=0 TO height&-1
+    POKE buf%,PEEK(adr2%)
+    ADD buf%,1
+    ADD adr2%,160
+  NEXT t&
+RETURN
+'
