@@ -1,2 +1,2 @@
-# Programmez! Articles Asm Source Code
-ATARI STF/E ASM-68k Rasters Examples
+# French magasine Programmez!
+ATARI STF/E ASM-68k Sources Examples<br>
