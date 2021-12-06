@@ -2,11 +2,9 @@
 * INFORMATIONS *
 ****************
 
-The Framework has been tested on Atari STF / STE / MSTE and not tested sufficiently on FALCON worth what a new update soon.
+The Framework has been tested on Atari STF / STE / MSTE.
 
 The Framework is compatible building under 2.x & 3.x Devpack version.
-
-This is the version 4.4 which is currently underway.
 
 1 / Parameters:
 ===============
@@ -46,18 +44,18 @@ Fills the bottom of the screen with the color of the palette number 6.
 
 By default, it must be initialized as follows:
 PATTERN          equ $0
-For screens are properly cleared on 4 shots.
+For screens are properly cleared on 4 plans.
 
 b) Screen used :
 ----------------
-You can set parameter NB_OF_SCREEN to use one or two screens in your demo. Defaut set with physical et logical Screens.
+You can set parameter NB_OF_SCREEN to use one (option ONE_SCREEN activated) or two screens (option TWO_SCREENS activated) in your demo. Defaut set with physical et logical Screens.
 
 c) Time Cpu :
 -------------
-It allows you to see the time taken (PURPLE color) and the remaining time left in BLACK color pressed by ALTERNATE key.
+It allows you to see the time taken (PURPLE color) and the remaining time left in BLACK color pressed by right ALTERNATE key.
 SEEMYVBL         equ 0 SEEMYVBL equ 0
 
-It's advisable to set it to "1" when the program is finished and ready to release...
+It's advisable to set it to "1" when the program is finished to release...
 
 d) Errors systems :
 -------------------
@@ -71,7 +69,7 @@ Source code from Mickaël Pointier - http://www.defence-force.com
 
 e) Fading :
 -----------
-Toggles the color white for black from the GEM desktop.
+Toggles the color white to black from the GEM desktop background color.
 FADE_INTRO equ 1
 
 f) Test the STE hardware :
@@ -81,7 +79,16 @@ TEST_STE         equ 1
 
 g) Top compatibility !
 ----------------------
-I insert the compatibility mode STF for FALCON by Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
+I added the compatibility mode STF for FALCON by Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
+
+h) BLITTER
+----------
+Permit to synchronize the Blitter with the VBL.
+Add this asembler part of code after calling the Blitter :
+.wait_blitter:
+	bset	#7,$ffff8a3c.w         ; Réamorcage rapide du Blitter
+	nop
+	bne.s	.wait_blitter
 
 2 / Key Features :
 ==================
@@ -91,7 +98,6 @@ Assembler control options for compilating :
 - No Optimization code activated,
 - No Warning display,
 - No Extend Debug mode activated in the final program.
-Supervisor mode detection.
 Memory allocation for the program.
 Performance :
 * Management of the keyboard buffer,
@@ -113,15 +119,15 @@ Safety :
 ===========================
 To implement the code inside the template:
 a) You must select the type of OVERSCAN used, we use the default parameter NO_BORDER,
-b) Implement the code called in the main loop, starting at line 105,
-c) Added your routines from line 572,
-d) Added data in the DATA section from line 584,
-e) Added bootable data in the BSS section from line 599.
+b) Implement the code called in the main loop, starting at line 110,
+c) Added your routines from line 581,
+d) Added data in the DATA section from line 593,
+e) Added bootable data in the BSS section from line 608.
 Timer option :
 --------------
-a) Add a routine HBL with the VBL: we must add the initialization Timers and calls the HBL between lines 426,
-b) You can add code to the VBL from line 253,
-c) Declare the routine code from HBL line 276.
+a) Add a routine HBL with the VBL: we must add the initialization Timers and calls the HBL between lines 445,
+b) You can add code to the VBL from line 266,
+c) Declare the routine code from HBL line 294.
 
 4 / Examples :
 ==============
@@ -153,4 +159,4 @@ Voila ! Voila!
 
 Frédéric Sagez aka Zorro 2^NoExtra.
 
-Update le 4/12/2016.
+Update le 6/12/2021.

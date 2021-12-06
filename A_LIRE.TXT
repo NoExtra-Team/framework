@@ -2,11 +2,9 @@
 * INFORMATIONS *
 ****************
 
-Le Framework a été testé sur STF/STE/MSTE et non testé suffisamment sur FALCON ce qui vaudra à une nouvelle mise à jour très prochainement.
+Le Framework a été testé sur un Atari STF/STE/MSTE.
 
 Le Framework est compatible et compilable sous Devpack 2.x & 3.x.
-
-C'est la version 4.4 qui est en cours actuellement.
 
 1/ Paramètres :
 ===============
@@ -50,14 +48,14 @@ Pour que les écrans soient bien éffacés sur 4 plans.
 
 b) Nombre d'écrans :
 --------------------
-Le parametre NB_OF_SCREEN permet d'utiliser un ou deux écrans dans votre démo. Par défaut il utilise un ecran physique et logique ce qui évite des effets de clipping.
+Le parametre NB_OF_SCREEN permet d'utiliser un (option ONE_SCREEN activée) ou deux écrans (option TWO_SCREENS activée) dans votre démo. Par défaut il utilise un ecran physique et logique ce qui évite des effets de clipping.
 
 c) Temps Cpu :
 --------------
-Il permet de voir le temps pris (couleur violette) et le temps restant en noir en restant appuyé sur la touche ALTERNATE.
+Il permet de voir le temps pris (couleur violette) et le temps restant en noir en restant appuyé sur la touche ALTERNATE droite.
 SEEMYVBL         equ 0
 
-Il est conseillé de le mettre à "1" une fois le programme terminé...
+Il est conseillé de le mettre à "1" une fois le programme compilé...
 
 d) Erreurs systèmes :
 ---------------------
@@ -71,7 +69,7 @@ Source code from Mickaël Pointier - http://www.defence-force.com
 
 e) Fading :
 -----------
-Permet de passer de la couleur blanche du bureau au le noir.
+Permet de passer de la couleur blanche du bureau GEM à la couleur noir du fond d'écran.
 FADE_INTRO       equ 1
 
 f) Teste du STE :
@@ -83,6 +81,16 @@ g) Top comptabilité !
 ---------------------
 J'ai rajouté dans le Framework la retro-comptabilité pour FALCON par Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
 
+h) BLITTER
+----------
+Permet de synchronisé le Blitter avec la VBL.
+Code à rajouter à la fin de l'appel du Blitter d'un effet :
+.wait_blitter:
+	bset	#7,$ffff8a3c.w         ; Réamorcage rapide du Blitter
+	nop
+	bne.s	.wait_blitter
+
+
 2/ Principales fonctionnalités :
 ================================
 Assembler control with options of compilating : 
@@ -91,7 +99,6 @@ Assembler control with options of compilating :
 - Aucune Optimsation du code à la compilation,
 - N'affiche pas les messages d'Alertes,
 - No Extend Debug mode activated in the final program.
-Détection du mode Superviseur.
 Allocation de mémoire pour l'exécution du programme.
 Performances :
 * Arrêt du lecteur de disquette,
@@ -114,15 +121,15 @@ Sécurité:
 ============================
 Pour implémenter du code dans le template :
 a) Il faut sélectionner le type d'OVERSCAN utilisé, par défaut on utilisera le paramètre NO_BORDER,
-b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 105,
-c) Ajouté vos routines à partir de la ligne 572,
-d) Ajouté vos données dans la section DATA à partir de la ligne 584,
-e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 599.
+b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 110,
+c) Ajouté vos routines à partir de la ligne 581,
+d) Ajouté vos données dans la section DATA à partir de la ligne 593,
+e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 608.
 Option Timer :
 --------------
-a) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 426,
-b) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 253,
-c) Déclarer le code de la routine HBL à partir de la ligne 276.
+a) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 445,
+b) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 266,
+c) Déclarer le code de la routine HBL à partir de la ligne 294.
 
 4/ Des exemples :
 =================
@@ -150,9 +157,8 @@ Et joint avec les fichiers :
 - NEOCHROME 2.24 pour faire le découpage d'image et utilisation de la palette,
 - LZ77-13.TTP pour l'utilisation de fichier LZ7.
 
-
 Voila !
 
 Frédéric Sagez aka Zorro 2^NoExtra.
 
-Update the 4 dec. 2016.
+Update the 6 dec. 2021.

@@ -1,16 +1,15 @@
 ***************************************
 * // XXXXXXXX.PRG                  // *
 ***************************************
-* // Asm Intro Code Atari ST v0.44 // *
-* // by Zorro 2/NoExtra (01/12/16) // *
-* // http://www.noextra-team.com/  // *
+* // Asm Intro Code Atari ST v0.45 // *
+* // by Zorro 2/NoExtra (01/12/21) // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
 * // Gfx font      :               // *
 * // Music         : JEDI          // *
-* // Release date  : xx/xx/2016    // *
-* // Update date   : xx/xx/2016    // *
+* // Release date  : xx/xx/2021    // *
+* // Update date   : xx/xx/2021    // *
 ***************************************
   OPT c+ ; Case sensitivity ON        *
   OPT d- ; Debug OFF                  *
@@ -19,9 +18,9 @@
   OPT x- ; Extended debug OFF         *
 ***************************************
 
-***************************************************************
-	SECTION	TEXT                                           // *
-***************************************************************
+**********************************************************************
+	SECTION	TEXT                                                    // *
+**********************************************************************
 
 ************************* OVERSCAN MODE ******************************
 BOTTOM_BORDER    equ 1           ; Use the bottom overscan           *
@@ -34,18 +33,16 @@ TWO_SCREENS      equ 1           ; Two Screens used                  *
 NB_OF_SCREEN     equ TWO_SCREENS ; Number of Screen used             *
 *************************** PARAMETERS *******************************
 SEEMYVBL         equ 0           ; See CPU used if you press ALT key *
-ERROR_SYS        equ 0           ; Manage Errors System              *
+ERROR_SYS        equ 1           ; Manage exit system errors         *
 FADE_INTRO       equ 1           ; Fade White to black palette       *
 TEST_STE         equ 1           ; Code only for Atari STE machine   *
 STF_INITS        equ 0           ; STF compatibility MODE            *
+BLITTER          equ 1           ; Sync effect with Blitter          *
 **********************************************************************
 *              Notes : 0 = I use it / 1 = no need !                  *
 **********************************************************************
 
 Begin:
-	move    SR,d0                    ; Test supervisor mode detected ?
-	btst    #13,d0                   ; Specialy for relocation
-	bne.s   mode_super_yet           ; programs
 	move.l  4(sp),a5                 ; Address to basepage
 	move.l  $0c(a5),d0               ; Length of TEXT segment
 	add.l   $14(a5),d0               ; Length of DATA segment
@@ -69,7 +66,6 @@ Begin:
 	trap    #1                       ;
 	addq.l  #6,sp                    ;
 	move.l  d0,Save_stack            ; Save adress of stack
-mode_super_yet:
 
  IFEQ TEST_STE
 	move.l	$5a0,a0                  ; Test if STE computer
@@ -90,6 +86,15 @@ mode_super_yet:
 	jsr	Multi_boot                   ; Multi Atari Boot code from LEONARD/OXG
  ENDC
 
+ IFEQ BLITTER
+	move.w	#$80,$ffff8a3c.w         ; Launch Blitter !
+	nop
+.restart:
+	bset	#7,$ffff8a3c.w
+	nop
+	bne.s	.restart
+ ENDC
+
 	bsr	Inits                        ; Other Initialisations
 
 **************************** MAIN LOOP ************************>
@@ -98,7 +103,7 @@ default_loop:
 	bsr	Wait_vbl                     ; Waiting after the VBL
 
  IFEQ	SEEMYVBL
-	clr.b $ffff8240.w                ; init line of CPU
+	move.l Default_palette,$ffff8240.w ; init line of CPU
  ENDC
 
 * < Put your code here >
@@ -121,7 +126,7 @@ default_loop:
 	cmp.b #$38,$fffffc02.w           ; ALT key pressed ?
 	bne.s .next_key                  ;
 	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
-.next_key:                           ;
+.next_key:                         ;
  ENDC
 
 	cmp.b #$39,$fffffc02.w           ; SPACE key pressed ?
@@ -153,16 +158,16 @@ Inits:
 	bsr	fadein                       ; Fading White to Black Screen
  ENDC
 
+	lea	Default_palette,a0           ; Put Default palette
+	lea	$ffff8240.w,a1               ;
+	movem.l	(a0),d0-d7               ;
+	movem.l	d0-d7,(a1)               ;
+
 	moveq #1,d0                      ; Choice of the music (1 is default)
 	jsr	MUSIC+0                      ; Init SNDH music
 
 	lea	Vbl(pc),a0                   ; Launch VBL
 	move.l	a0,$70.w                 ;
-
-	lea	Default_palette,a0           ; Put Default palette
-	lea	$ffff8240.w,a1               ;
-	movem.l	(a0),d0-d7               ;
-	movem.l	d0-d7,(a1)               ;
 
 	movem.l	(a7)+,d0-d7/a0-a6
 	rts
@@ -227,6 +232,14 @@ physique:
 *                                                             *
 ***************************************************************
 Vbl:
+ IFEQ BLITTER
+.sync_blitter:                     ; Sync Blitter with effect
+	bclr.b	#7,$ffff8a3c.w
+	nop
+	btst.b	#7,$ffff8a3c.w
+	bne.s	.sync_blitter
+ ENDC
+
 	st	Vsync                        ; Synchronisation
 
 	movem.l	d0-d7/a0-a6,-(a7)
@@ -256,6 +269,11 @@ Vbl:
 	jsr (MUSIC+8)                    ; Play SNDH music
 
 	movem.l	(a7)+,d0-d7/a0-a6
+
+ IFEQ BLITTER
+	bset.b	#7,$ffff8a3c.w           ; Launch Blitter
+	nop
+ ENDC
 	rte
 
 Wait_vbl:
@@ -310,30 +328,30 @@ tadr = $FFFFFA1F
 topbord:
 	move.l	a0,-(a7)
 	move #$2100,SR
-	stop #$2100                    ; Sync with interrupt
-	clr.b (tacr).w                 ; Stop timer A
-	dcb.w 78,$4E71                 ; 78 nops
-	clr.b (herz).w                 ; 60 Hz
-	dcb.w 18,$4E71                 ; 18 nops
-	move.b #2,(herz).w             ; 50 Hz
+	stop #$2100                      ; Sync with interrupt
+	clr.b (tacr).w                   ; Stop timer A
+	dcb.w 78,$4E71                   ; 78 nops
+	clr.b (herz).w                   ; 60 Hz
+	dcb.w 18,$4E71                   ; 18 nops
+	move.b #2,(herz).w               ; 50 Hz
 	lea	botbord(pc),a0
-	move.l a0,$134.w               ; Timer A vector
-	move.b #178,(tadr).w           ; Countdown value for timer A
-	move.b #7,(tacr).w             ; Delay mode, clock divided by 200
-	move.l (a7)+,a0                ;
-	bclr.b #5,(isra).w             ; Clear end of interrupt flag
+	move.l a0,$134.w                 ; Timer A vector
+	move.b #178,(tadr).w             ; Countdown value for timer A
+	move.b #7,(tacr).w               ; Delay mode, clock divided by 200
+	move.l (a7)+,a0                  ;
+	bclr.b #5,(isra).w               ; Clear end of interrupt flag
 my_hbl:
 	rte
 
 botbord:
-	move #$2100,SR                 ;
-	stop #$2100                    ; sync with interrupt
-	clr.b (tacr).w                 ; stop timer A
-	dcb.w 78,$4E71                 ; 78 nops
-	clr.b (herz).w                 ; 60 Hz
-	dcb.w 18,$4E71                 ; 18 nops
-	move.b #2,(herz).w             ; 50 Hz
-	bclr.b #5,(isra).w             ;
+	move #$2100,SR                   ;
+	stop #$2100                      ; sync with interrupt
+	clr.b (tacr).w                   ; stop timer A
+	dcb.w 78,$4E71                   ; 78 nops
+	clr.b (herz).w                   ; 60 Hz
+	dcb.w 18,$4E71                   ; 18 nops
+	move.b #2,(herz).w               ; 50 Hz
+	bclr.b #5,(isra).w               ;
 	rte
  ENDC
 
@@ -388,14 +406,15 @@ Save_and_init_st:
 	bsr	INPUT_TRACE_ERROR            ; Save vectors list
  ENDC
 
-	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
-	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
-	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
-	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
-	clr.b $fffffa19.w                ; Stop Timer A
-	clr.b $fffffa1b.w                ; Stop Timer B
-	clr.b $fffffa21.w                ; Timer B data at zero
-	clr.b $fffffa1d.w                ; Stop Timer C & D
+* Available interrupt commands for music if needed...
+;	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
+;	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
+;	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
+;	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
+;	clr.b $fffffa19.w                ; Stop Timer A
+;	clr.b $fffffa1b.w                ; Stop Timer B
+;	clr.b $fffffa21.w                ; Timer B data at zero
+;	clr.b $fffffa1d.w                ; Stop Timer C & D
 
  IFEQ	BOTTOM_BORDER
 	sf $fffffa21.w                   ; Timer B data (number of scanlines to next interrupt)
@@ -431,7 +450,7 @@ Save_and_init_st:
 	clr.b $484.w                     ; No bip, no repeat
 
 	move #4,-(sp)                    ; Save & Change Resolution (GetRez)
-	trap #14	                     ; Get Current Res.
+	trap #14	                       ; Get Current Res.
 	addq.l #2,sp                     ;
 	move d0,Old_Resol+2              ; Save it
 
@@ -448,14 +467,12 @@ Save_and_init_st:
 
 	bsr	flush                        ; Clear buffer keyboard
 
-; If you don't use Multi_boot...
+; If you don't use Multi_boot option...
 	sf	$ffff8260.w                  ; Low resolution
 	move.b	#$2,$ffff820a.w          ; 50 Hz !
 	rts
 
 Restore_st:
-	bsr	black_out                    ; palette color to zero
-
 	moveq #$13,d0                    ; Pause keyboard
 	bsr	sendToKeyboard               ;
 
@@ -536,34 +553,26 @@ Old_Screen:                        ;
 
 flush:                             ; Empty buffer
 	lea	$FFFFFC00.w,a0               
-.flush:	move.b	2(a0),d0           
+.flush:
+	move.b	2(a0),d0           
 	btst	#0,(a0)                    
 	bne.s	.flush                     
 	rts
 
 sendToKeyboard:                    ; Keyboard access
-.wait:	btst	#1,$fffffc00.w
+.wait:
+	btst	#1,$fffffc00.w
 	beq.s	.wait
 	move.b	d0,$FFFFFC02.w
 	rts
 
 clear_bss:                         ; Init BSS stack with zero
 	lea	bss_start,a0
-.loop:	clr.l	(a0)+
+	moveq	#0,d0
+.clr:
+	move.l	d0,(a0)+
 	cmp.l	#bss_end,a0
-	blt.s	.loop
-	rts
-
-black_out:                         ; Clear Palette colors
-	moveq  #0,d0
-	moveq  #0,d1
-	moveq  #0,d2
-	moveq  #0,d3
-	moveq  #0,d4
-	moveq  #0,d5
-	moveq  #0,d6
-	moveq  #0,d7
-	movem.l d0-d7,$ffff8240.w
+	blt.s	.clr
 	rts
 
 ***************************************************************
@@ -607,7 +616,7 @@ Save_stack:
 	ds.l	1
 
 Save_all:
-	ds.b 16 * MFP
+	ds.b 16 * MFP Interrupts
 	ds.b 4	* Video : f8201.w -> f820d.w
 
 Save_rest:
@@ -642,9 +651,10 @@ Screen:
 ***************************************************************
 fadein:
 	move.l	#$777,d0
-.deg:	bsr.s	wart
+.deg:
+ rept 3
 	bsr.s	wart
-	bsr.s	wart
+ endr
 	lea	$ffff8240.w,a0
 	moveq	#15,d1
 .chg1:
@@ -652,7 +662,19 @@ fadein:
 	dbf	d1,.chg1
 	sub.w	#$111,d0
 	bne.s	.deg
-	bsr	black_out                    ; Palette colors to zero
+	bsr.s	black_out                  ; All palette colors to zero
+	rts
+
+black_out:                         ; Clear Palette colors
+	moveq  #0,d0
+	moveq  #0,d1
+	moveq  #0,d2
+	moveq  #0,d3
+	moveq  #0,d4
+	moveq  #0,d5
+	moveq  #0,d6
+	moveq  #0,d7
+	movem.l d0-d7,$ffff8240.w
 	rts
 
 wart:                              ; VSYNC()
@@ -691,34 +713,34 @@ OUTPUT_TRACE_ERROR:
 	dbra d0,.restaure_illegal
 	rts
 
-routine_bus:
+routine_bus: ; BUS - GREEN
 	move.w #$070,d0
 	bra.s execute_detournement
-routine_adresse:
+routine_adresse:	;	ADDRESS - BLUE
 	move.w #$007,d0
 	bra.s execute_detournement
-routine_illegal:
+routine_illegal:	;	ILLEGAL - RED
 	move.w #$700,d0
 	bra.s execute_detournement
-routine_div:
+routine_div:	;	DIV ERROR - YELLOW
 	move.w #$770,d0
 	bra.s execute_detournement
-routine_chk:
+routine_chk:	;	CHECK - LIGHT BLUE
 	move.w #$077,d0
 	bra.s execute_detournement
-routine_trapv:
+routine_trapv:	;	TRAP ERROR - WHITE
 	move.w #$777,d0
 	bra.s execute_detournement
-routine_viole:
+routine_viole:	;	VIOLATION ACCESS - PURPLE
 	move.w #$707,d0
 	bra.s execute_detournement
-routine_trace:
+routine_trace:	;	TRACE ERROR - DARK BLACK
 	move.w #$333,d0
 	bra.s execute_detournement
-routine_line_a:
+routine_line_a:	;	LINE A ERROR - ORANGE
 	move.w #$740,d0
 	bra.s execute_detournement
-routine_line_f:
+routine_line_f:	;	LINE F ERROR - LIGHT GREEN
 	move.w #$474,d0
 execute_detournement:
 	move.w #$2700,SR                  ; Deux erreurs à suivre... non mais !
@@ -745,7 +767,7 @@ liste_vecteurs:
 	dc.l routine_viole	Violet
 	dc.l routine_trace	Gris
 	dc.l routine_line_a	Orange
-	dc.l routine_line_f	Vert pale
+	dc.l routine_line_f	Vert clair
 	even
 	ENDC
 
@@ -903,5 +925,5 @@ bCT60:
  ENDC
 
 ******************************************************************
-	END                                                       // *
+	END                                                         // *
 ******************************************************************
