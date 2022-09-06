@@ -1,15 +1,15 @@
 ***************************************
 * // XXXXXXXX.PRG                  // *
 ***************************************
-* // Asm Intro Code Atari ST v0.45 // *
-* // by Zorro 2/NoExtra (01/12/21) // *
+* // Asm Intro Code Atari ST v0.46 // *
+* // by Zorro 2/NoExtra (06/09/22) // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
 * // Gfx font      :               // *
 * // Music         : JEDI          // *
-* // Release date  : xx/xx/2021    // *
-* // Update date   : xx/xx/2021    // *
+* // Release date  : xx/xx/2022    // *
+* // Update date   : xx/xx/2022    // *
 ***************************************
   OPT c+ ; Case sensitivity ON        *
   OPT d- ; Debug OFF                  *
@@ -87,6 +87,14 @@ Begin:
  ENDC
 
  IFEQ BLITTER
+
+Sync_Blit macro                      ; Macro must be used with blitter effect outside the VBL for synchronisations
+.wait_blitter:                       ; Fast Blitter Reboot
+	bset	#7,$ffff8a3c.w
+	nop
+	bne.s	.wait_blitter
+	endm
+
 	move.w	#$80,$ffff8a3c.w         ; Launch Blitter !
 	nop
 .restart:
@@ -696,7 +704,7 @@ wart:                              ; VSYNC()
 INPUT_TRACE_ERROR:
 	lea $8.w,a0                       ; Adresse de base des vecteurs (Erreur de Bus)
 	lea liste_vecteurs,a1             ;
-	moveq #10-1,d0                    ; On détourne toutes les erreur possibles...
+	moveq #10-1,d0                    ; On dï¿½tourne toutes les erreur possibles...
 .b_sauve_exceptions:
 	move.l (a1)+,d1                   ; Adresse de la nouvelle routine
 	move.l (a0)+,-4(a1)               ; Sauve l'ancienne
@@ -743,7 +751,7 @@ routine_line_a:	;	LINE A ERROR - ORANGE
 routine_line_f:	;	LINE F ERROR - LIGHT GREEN
 	move.w #$474,d0
 execute_detournement:
-	move.w #$2700,SR                  ; Deux erreurs à suivre... non mais !
+	move.w #$2700,SR                  ; Deux erreurs ï¿½ suivre... non mais !
 
 	move.w	#$0FF,d1
 .loop:
@@ -753,7 +761,7 @@ execute_detournement:
 	dbra d1,.loop
 
 	pea ESCAPE_PRG                    ; Put the return adress
-	move.w #$2700,-(sp)               ; J'espère !!!...
+	move.w #$2700,-(sp)               ; J'espï¿½re !!!...
 	addq.l #2,2(sp)                   ; 24/6
 	rte                               ; 20/5 => Total hors tempo = 78-> 80/20 nops
 
