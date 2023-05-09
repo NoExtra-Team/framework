@@ -1,17 +1,23 @@
-REM - NOEXTRA ASSEMBLER PROGRAM COMPILATION KIT -
-@CLS
 @ECHO OFF
+@CLS
+REM ---------------------------------------
+REM -*- NOEXTRA PROGRAM COMPRESSION KIT -*-
+REM ---------------------------------------
 
-SET NAMEASMFILE=Intro_46.S
-SET NAMEPRGFILE=Intro_46.PRG
-SET NAMEERRFILE=Intro_46.ERR
-SET NAMETXTFILE=Intro_46.ASM
+SET NAME=Intro_46
+SET NAMEASMFILE=%NAME%.S
+SET NAMEPRGFILE=%NAME%.PRG
+SET NAMETOSFILE=%NAME%.TOS
+SET NAMEERRFILE=%NAME%.ERR
+SET NAMETXTFILE=%NAME%.ASM
 
-del %NAMEPRGFILE% 2>NUL
+del %NAMETOSFILE% 2>NUL
 del %NAMETXTFILE% 2>NUL
 del %NAMEERRFILE% 2>NUL
 
-SET RMAC=rmac-2.2.7-win64.exe
+SET FOLDER-BIN=.\_bin\
+
+SET RMAC=%FOLDER-BIN%rmac-2.2.7-win64.exe
 SET OPTIONS=-px -v -s -m68000 -l%NAMETXTFILE% -e%NAMEERRFILE%
 
 ::
@@ -23,21 +29,21 @@ SET OPTIONS=-px -v -s -m68000 -l%NAMETXTFILE% -e%NAMEERRFILE%
 :: -m   -> Switch CPU type
 ::
 
-ECHO ----------------------- ASSEMBLE ----------------------
+ECHO -*- NOEXTRA ASSEMBLER PROGRAM COMPILATION KIT -*-
+ECHO -------------------------------- ASSEMBLE -------------------------------
+ECHO %RMAC% %OPTIONS% %NAMEASMFILE%
+ECHO -------------------------------------------------------------------------
 %RMAC% %OPTIONS% %NAMEASMFILE%
 IF ERRORLEVEL 1 GOTO :Error_label
-ECHO ------------------------- DONE! -----------------------
-PAUSE
+ECHO ------------------------------ TEST ISSUES ------------------------------
+IF EXIST %NAMEERRFILE% GOTO :Error_label
+ECHO --------------------------------- DONE! ---------------------------------
 GOTO :End_label
 
 :Error_label
-ECHO ------------------------ ERROR!?!----------------------
+ECHO -------------------------------- ERROR(S) -------------------------------
 TYPE %NAMEERRFILE%
 PAUSE
-GOTO :End_label
-
 
 :End_label
-@CLS
 @ECHO ON
-

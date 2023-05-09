@@ -42,7 +42,7 @@ FADE_INTRO       equ 1           ; Fade White to black palette       *
 TEST_STE         equ 1           ; Code only for Atari STE machine   *
 STF_INITS        equ 0           ; STF compatibility MODE            *
 BLITTER          equ 1           ; Sync effect with Blitter          *
-;DEBUGTIMER       equ 0           ; Cut all Timers for tests         *
+*DEBUGTIMER       equ 0           ; Cut all Timers for tests         *
 **********************************************************************
 *              Notes : 0 = I use it / 1 = no need !                  *
 **********************************************************************
@@ -108,7 +108,7 @@ Begin:
 	bne.s	.restart
 .endif
 
-	bsr	Inits                        ; Other Initialisations
+	bsr.s	Inits                        ; Other Initialisations
 
 **************************** MAIN LOOP ************************>
 
@@ -124,8 +124,7 @@ default_loop:
 
 * <
 
-.iif (NB_OF_SCREEN > 1), DOSWAP = 111  ; Test if one Screen
-.if (^^defined DOSWAP)
+.if (NB_OF_SCREEN = 1)
 	lea     physique(pc),a0          ; Swapping Screens
 	move.l	(a0),d0                  ; if more than one screen
 	move.l	4(a0),(a0)+              ;
@@ -140,7 +139,7 @@ default_loop:
 	cmp.b #$38,$fffffc02.w           ; ALT key pressed ?
 	bne.s .next_key                  ;
 	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
-.next_key:                           ;
+.next_key:                         ;
 .endif
 
 	cmp.b #$39,$fffffc02.w           ; SPACE key pressed ?
@@ -210,8 +209,7 @@ Init_screens:
 	move.l  #PATTERN,(a0)+           ;
 	dbf	    d7,*-6                   ;
 
-.iif (NB_OF_SCREEN > 1), DOSCREEN = 999 ; Test if more than one Screen
-.if (^^defined DOSCREEN)
+.if (NB_OF_SCREEN = 1)
 	add.l #SIZE_OF_SCREEN,d0         ; Set logical Screen #2
 	clr.b d0                         ;
 	move.l d0,physique+4             ;
@@ -222,7 +220,7 @@ Init_screens:
 	dbf	    d7,*-6                   ;
 .endif
 
-.if (NB_OF_SCREEN < 2)               ; Test if one Screen need to display
+.if (NB_OF_SCREEN < 1)               ; Test if one Screen need to display
 	move.l	physique(pc),d0          ; Put physical Screen
 	move.b	d0,d1                    ;
 	lsr.w #8,d0                      ;

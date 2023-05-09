@@ -1,5 +1,5 @@
 
-                                        Intro_46.S           Page 1       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 1       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
     1                                   *****************************************
@@ -46,7 +46,7 @@
    42           =00000001               TEST_STE         equ 1           ; Code only for Atari STE machine   *
    43           =00000000               STF_INITS        equ 0           ; STF compatibility MODE            *
    44           =00000001               BLITTER          equ 1           ; Sync effect with Blitter          *
-   45                                   ;DEBUGTIMER       equ 0           ; Cut all Timers for tests         *
+   45                                   *DEBUGTIMER       equ 0           ; Cut all Timers for tests         *
    46                                   **********************************************************************
    47                                   *              Notes : 0 = I use it / 1 = no need !                  *
    48                                   **********************************************************************
@@ -60,7 +60,7 @@
    56  00000016  D0BC00000100           	add.l   #$100,d0                 ; Length of basepage
 
 
-                                        Intro_46.S           Page 2       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 2       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
    57  0000001C  220D                   	move.l  a5,d1                    ; Address to basepage
@@ -117,20 +117,20 @@
   108                                 - 	bne.s	.restart
   109                                 - .endif
   110                                   
-  111  00000056  6100xxxx               	bsr	Inits                        ; Other Initialisations
+  111  00000056  61xx                   	bsr.s	Inits                        ; Other Initialisations
   112                                   
 
 
-                                        Intro_46.S           Page 3       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 3       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
   113                                   **************************** MAIN LOOP ************************>
   114                                   
   115                                   default_loop:
-  116  0000005A  6100xxxx               	bsr	Wait_vbl                     ; Waiting after the VBL
+  116  00000058  6100xxxx               	bsr	Wait_vbl                     ; Waiting after the VBL
   117                                   
   118                                   .if (SEEMYVBL = 0)
-  119  0000005E  21F9xxxxxxxx8240       	move.l Default_palette,$ffff8240.w ; init line of CPU
+  119  0000005C  21F9xxxxxxxx8240       	move.l Default_palette,$ffff8240.w ; init line of CPU
   120                                   .endif
   121                                   
   122                                   * << Put your code here in the main loop >>
@@ -138,527 +138,525 @@
   124                                   
   125                                   * <
   126                                   
-  127                                   .iif (NB_OF_SCREEN > 1), DOSWAP = 111  ; Test if one Screen
-  128                                   .if (^^defined DOSWAP)
-  129                                 - 	lea     physique(pc),a0          ; Swapping Screens
-  130                                 - 	move.l	(a0),d0                  ; if more than one screen
-  131                                 - 	move.l	4(a0),(a0)+              ;
-  132                                 - 	move.l	d0,(a0)                  ;
-  133                                 - 	move.b  d0,$ffff820d.w           ;
-  134                                 - 	move    d0,-(sp)                 ;
-  135                                 - 	move.b  (sp)+,d0                 ;
-  136                                 - 	move.l  d0,$ffff8200.w           ;
-  137                                 - .endif
-  138                                   
-  139                                   .if (SEEMYVBL = 0)
-  140  00000066  0C380038FC02           	cmp.b #$38,$fffffc02.w           ; ALT key pressed ?
-  141  0000006C  66xx                   	bne.s .next_key                  ;
-  142  0000006E  11FC00078240           	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
-  143                                   .next_key:                           ;
-  144                                   .endif
-  145                                   
-  146  00000074  0C380039FC02           	cmp.b #$39,$fffffc02.w           ; SPACE key pressed ?
-  147  0000007A  66DE                   	bne.s	default_loop
-  148                                   
-  149                                   **************************** MAIN LOOP ************************<
-  150                                   
-  151                                   ESCAPE_PRG:
-  152  0000007C  6100xxxx               	bsr	Restore_st                   ; Restore all registers
-  153                                   
-  154                                   EXIT_PRG:
-  155  00000080  2F39xxxxxxxx           	move.l  Save_stack,-(sp)         ; Restore adress of stack
-  156  00000086  3F3C0020               	move.w  #32,-(sp)                ; Restore user Mode
-  157  0000008A  4E41                   	trap    #1                       ;
-  158  0000008C  5C8F                   	addq.l  #6,sp                    ;
-  159                                   
-  160  0000008E  4267                   	clr.w   -(sp)                    ; Pterm()
-  161  00000090  4E41                   	trap    #1                       ; EXIT program
-  162                                   
-  163                                   ***************************************************************
-  164                                   *                                                             *
-  165                                   *                 Initialisations Routines                    *
-  166                                   *                                                             *
-  167                                   ***************************************************************
-  168                                   Inits:
+  127                                   .if (NB_OF_SCREEN = 1)
+  128  00000064  41FAxxxx               	lea     physique(pc),a0          ; Swapping Screens
+  129  00000068  2010                   	move.l	(a0),d0                  ; if more than one screen
+  130  0000006A  20E80004               	move.l	4(a0),(a0)+              ;
+  131  0000006E  2080                   	move.l	d0,(a0)                  ;
+  132  00000070  11C0820D               	move.b  d0,$ffff820d.w           ;
+  133  00000074  3F00                   	move    d0,-(sp)                 ;
+  134  00000076  101F                   	move.b  (sp)+,d0                 ;
+  135  00000078  21C08200               	move.l  d0,$ffff8200.w           ;
+  136                                   .endif
+  137                                   
+  138                                   .if (SEEMYVBL = 0)
+  139  0000007C  0C380038FC02           	cmp.b #$38,$fffffc02.w           ; ALT key pressed ?
+  140  00000082  66xx                   	bne.s .next_key                  ;
+  141  00000084  11FC00078240           	move.b	#7,$ffff8240.w           ; See the rest of CPU (pink color used)
+  142                                   .next_key:                         ;
+  143                                   .endif
+  144                                   
+  145  0000008A  0C380039FC02           	cmp.b #$39,$fffffc02.w           ; SPACE key pressed ?
+  146  00000090  66C6                   	bne.s	default_loop
+  147                                   
+  148                                   **************************** MAIN LOOP ************************<
+  149                                   
+  150                                   ESCAPE_PRG:
+  151  00000092  6100xxxx               	bsr	Restore_st                   ; Restore all registers
+  152                                   
+  153                                   EXIT_PRG:
+  154  00000096  2F39xxxxxxxx           	move.l  Save_stack,-(sp)         ; Restore adress of stack
+  155  0000009C  3F3C0020               	move.w  #32,-(sp)                ; Restore user Mode
+  156  000000A0  4E41                   	trap    #1                       ;
+  157  000000A2  5C8F                   	addq.l  #6,sp                    ;
+  158                                   
+  159  000000A4  4267                   	clr.w   -(sp)                    ; Pterm()
+  160  000000A6  4E41                   	trap    #1                       ; EXIT program
+  161                                   
+  162                                   ***************************************************************
+  163                                   *                                                             *
+  164                                   *                 Initialisations Routines                    *
+  165                                   *                                                             *
+  166                                   ***************************************************************
+  167                                   Inits:
+  168  000000A8  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
 
 
-                                        Intro_46.S           Page 4       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 4       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  169  00000092  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
-  170                                   
-  171                                   .if (FADE_INTRO = 0)
-  172                                 - 	bsr	fadein                       ; Fading White to Black Screen
-  173                                 - .endif
-  174                                   
-  175  00000096  41F9xxxxxxxx           	lea	Default_palette,a0           ; Put Default palette
-  176  0000009C  43F88240               	lea	$ffff8240.w,a1               ;
-  177  000000A0  4CD000FF               	movem.l	(a0),d0-d7               ;
-  178  000000A4  48D100FF               	movem.l	d0-d7,(a1)               ;
-  179                                   
-  180  000000A8  7001                   	moveq #1,d0                      ; Choice of the music (1 is default)
-  181  000000AA  4EB9xxxxxxxx           	jsr	MUSIC+0                      ; Init SNDH music
-  182                                   
-  183  000000B0  41FAxxxx               	lea	Vbl(pc),a0                   ; Launch VBL
-  184  000000B4  21C80070               	move.l	a0,$70.w                 ;
-  185                                   
-  186  000000B8  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
-  187  000000BC  4E75                   	rts
-  188                                   
-  189                                   ***************************************************************
-  190                                   *                                                             *
-  191                                   *                       Screen Routines                       *
-  192                                   *                                                             *
-  193                                   ***************************************************************
-  194                                   ; Only Screen Size in Low Resolution
-  195           =00007D00               .iif ( NO_BORDER = 0 & (BOTTOM_BORDER = 1 & TOPBOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*200
-  196                                   ; Size of Screen + Lower Border Size
-  197                                   .iif (BOTTOM_BORDER = 0 & (NO_BORDER = 1 & TOPBOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*250
-  198                                   ; Size of Screen + Top & Lower Border Size
-  199                                   .iif (TOPBOTTOM_BORDER = 0 & (NO_BORDER = 1 & BOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*300
-  200                                   
-  201                                   Init_screens:
-  202  000000BE  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
-  203                                   
-  204  000000C2  203Cxxxxxxxx           	move.l #Screen+256,d0            ; Set physical Screen #1
-  205  000000C8  4200                   	clr.b d0                         ;
-  206  000000CA  23C0xxxxxxxx           	move.l d0,physique               ;
-  207                                   
-  208  000000D0  207Axxxx               	move.l	physique(pc),a0          ; Fill PATTERN in Screen #1
-  209  000000D4  3E3C1F3F               	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
-  210  000000D8  20FC00010001           	move.l  #PATTERN,(a0)+           ;
-  211  000000DE  51CFFFF8               	dbf	    d7,*-6                   ;
-  212                                   
-  213                                   .iif (NB_OF_SCREEN > 1), DOSCREEN = 999 ; Test if more than one Screen
-  214                                   .if (^^defined DOSCREEN)
-  215                                 - 	add.l #SIZE_OF_SCREEN,d0         ; Set logical Screen #2
-  216                                 - 	clr.b d0                         ;
-  217                                 - 	move.l d0,physique+4             ;
-  218                                 - 
-  219                                 - 	move.l	physique+4(pc),a0        ; Fill PATTERN in Screen #2
-  220                                 - 	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
-  221                                 - 	move.l  #PATTERN,(a0)+           ;
-  222                                 - 	dbf	    d7,*-6                   ;
-  223                                 - .endif
-  224                                   
+  169                                   
+  170                                   .if (FADE_INTRO = 0)
+  171                                 - 	bsr	fadein                       ; Fading White to Black Screen
+  172                                 - .endif
+  173                                   
+  174  000000AC  41F9xxxxxxxx           	lea	Default_palette,a0           ; Put Default palette
+  175  000000B2  43F88240               	lea	$ffff8240.w,a1               ;
+  176  000000B6  4CD000FF               	movem.l	(a0),d0-d7               ;
+  177  000000BA  48D100FF               	movem.l	d0-d7,(a1)               ;
+  178                                   
+  179  000000BE  7001                   	moveq #1,d0                      ; Choice of the music (1 is default)
+  180  000000C0  4EB9xxxxxxxx           	jsr	MUSIC+0                      ; Init SNDH music
+  181                                   
+  182  000000C6  41FAxxxx               	lea	Vbl(pc),a0                   ; Launch VBL
+  183  000000CA  21C80070               	move.l	a0,$70.w                 ;
+  184                                   
+  185  000000CE  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
+  186  000000D2  4E75                   	rts
+  187                                   
+  188                                   ***************************************************************
+  189                                   *                                                             *
+  190                                   *                       Screen Routines                       *
+  191                                   *                                                             *
+  192                                   ***************************************************************
+  193                                   ; Only Screen Size in Low Resolution
+  194           =00007D00               .iif ( NO_BORDER = 0 & (BOTTOM_BORDER = 1 & TOPBOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*200
+  195                                   ; Size of Screen + Lower Border Size
+  196                                   .iif (BOTTOM_BORDER = 0 & (NO_BORDER = 1 & TOPBOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*250
+  197                                   ; Size of Screen + Top & Lower Border Size
+  198                                   .iif (TOPBOTTOM_BORDER = 0 & (NO_BORDER = 1 & BOTTOM_BORDER = 1)), SIZE_OF_SCREEN equ 160*300
+  199                                   
+  200                                   Init_screens:
+  201  000000D4  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
+  202                                   
+  203  000000D8  203Cxxxxxxxx           	move.l #Screen+256,d0            ; Set physical Screen #1
+  204  000000DE  4200                   	clr.b d0                         ;
+  205  000000E0  23C0xxxxxxxx           	move.l d0,physique               ;
+  206                                   
+  207  000000E6  207Axxxx               	move.l	physique(pc),a0          ; Fill PATTERN in Screen #1
+  208  000000EA  3E3C1F3F               	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
+  209  000000EE  20FC00010001           	move.l  #PATTERN,(a0)+           ;
+  210  000000F4  51CFFFF8               	dbf	    d7,*-6                   ;
+  211                                   
+  212                                   .if (NB_OF_SCREEN = 1)
+  213  000000F8  D0BC00007D00           	add.l #SIZE_OF_SCREEN,d0         ; Set logical Screen #2
+  214  000000FE  4200                   	clr.b d0                         ;
+  215  00000100  23C0xxxxxxxx           	move.l d0,physique+4             ;
+  216                                   
+  217  00000106  207Axxxx               	move.l	physique+4(pc),a0        ; Fill PATTERN in Screen #2
+  218  0000010A  3E3C1F3F               	move.w  #(SIZE_OF_SCREEN)/4-1,d7 ;
+  219  0000010E  20FC00010001           	move.l  #PATTERN,(a0)+           ;
+  220  00000114  51CFFFF8               	dbf	    d7,*-6                   ;
+  221                                   .endif
+  222                                   
+  223                                   .if (NB_OF_SCREEN < 1)               ; Test if one Screen need to display
+  224                                 - 	move.l	physique(pc),d0          ; Put physical Screen
 
 
-                                        Intro_46.S           Page 5       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 5       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  225                                   .if (NB_OF_SCREEN < 2)               ; Test if one Screen need to display
-  226  000000E2  203Axxxx               	move.l	physique(pc),d0          ; Put physical Screen
-  227  000000E6  1200                   	move.b	d0,d1                    ;
-  228  000000E8  E048                   	lsr.w #8,d0                      ;
-  229  000000EA  11C08203               	move.b	d0,$ffff8203.w           ;
-  230  000000EE  4840                   	swap d0                          ;
-  231  000000F0  11C08201               	move.b	d0,$ffff8201.w           ;
-  232  000000F4  11C1820D               	move.b	d1,$ffff820d.w           ;
-  233                                   .endif
-  234                                   
-  235  000000F8  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
-  236  000000FC  4E75                   	rts
-  237                                   
-  238                                   physique:
-  239  000000FE  0000000000000000       	ds.l (NB_OF_SCREEN+1)            ; Number of screens declared
-  240                                   
-  241                                   ***************************************************************
+  225                                 - 	move.b	d0,d1                    ;
+  226                                 - 	lsr.w #8,d0                      ;
+  227                                 - 	move.b	d0,$ffff8203.w           ;
+  228                                 - 	swap d0                          ;
+  229                                 - 	move.b	d0,$ffff8201.w           ;
+  230                                 - 	move.b	d1,$ffff820d.w           ;
+  231                                 - .endif
+  232                                   
+  233  00000118  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
+  234  0000011C  4E75                   	rts
+  235                                   
+  236                                   physique:
+  237  0000011E  0000000000000000       	ds.l (NB_OF_SCREEN+1)            ; Number of screens declared
+  238                                   
+  239                                   ***************************************************************
+  240                                   *                                                             *
+  241                                   *                        Vbl Routines                         *
   242                                   *                                                             *
-  243                                   *                        Vbl Routines                         *
-  244                                   *                                                             *
-  245                                   ***************************************************************
-  246                                   Vbl:
-  247                                   .if (BLITTER = 0)
-  248                                 - .sync_blitter:                       ; Sync Blitter with effect
-  249                                 - 	bclr.b	#7,$ffff8a3c.w
-  250                                 - 	nop
-  251                                 - 	btst.b	#7,$ffff8a3c.w
-  252                                 - 	bne.s	.sync_blitter
-  253                                 - .endif
+  243                                   ***************************************************************
+  244                                   Vbl:
+  245                                   .if (BLITTER = 0)
+  246                                 - .sync_blitter:                       ; Sync Blitter with effect
+  247                                 - 	bclr.b	#7,$ffff8a3c.w
+  248                                 - 	nop
+  249                                 - 	btst.b	#7,$ffff8a3c.w
+  250                                 - 	bne.s	.sync_blitter
+  251                                 - .endif
+  252                                   
+  253  00000126  50F9xxxxxxxx           	st	Vsync                        ; Synchronisation
   254                                   
-  255  00000106  50F9xxxxxxxx           	st	Vsync                        ; Synchronisation
+  255  0000012C  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
   256                                   
-  257  0000010C  48E7FFFE               	movem.l	d0-d7/a0-a6,-(a7)
-  258                                   
-  259                                   .if (BOTTOM_BORDER = 0)
-  260                                 - 	clr.b   $fffffa1b.w              ; Disable timer B
-  261                                 - 	lea	Over_rout(pc),a0             ; HBL
-  262                                 - 	move.l	a0,$120.w                ; Timer B vector
-  263                                 - 	move.b	#199,$fffffa21.w         ; At the position
-  264                                 - 	move.b	#8,$fffffa1b.w           ; Launch HBL
-  265                                 - .endif
-  266                                   
-  267                                   .if (TOPBOTTOM_BORDER = 0)
-  268                                 - tacr = $FFFFFA19
-  269                                 - tadr = $FFFFFA1F
-  270                                 - 
-  271                                 - 	move.l	a0,-(a7)
-  272                                 - 	clr.b (tacr).w                   ; Stop timer A
-  273                                 - 	lea	topbord(pc),a0               ; Launch HBL
-  274                                 - 	move.l	a0,$134.w                ; Timer A vector
-  275                                 - 	move.b	#99,(tadr).w             ; Countdown value for timer A
-  276                                 - 	move.b	#4,(tacr).w              ; Delay mode, clock divided by 50
-  277                                 - 	move.l	(a7)+,a0
-  278                                 - .endif
-  279                                   
-  280                                   .if (NO_BORDER = 0)
+  257                                   .if (BOTTOM_BORDER = 0)
+  258                                 - 	clr.b   $fffffa1b.w              ; Disable timer B
+  259                                 - 	lea	Over_rout(pc),a0             ; HBL
+  260                                 - 	move.l	a0,$120.w                ; Timer B vector
+  261                                 - 	move.b	#199,$fffffa21.w         ; At the position
+  262                                 - 	move.b	#8,$fffffa1b.w           ; Launch HBL
+  263                                 - .endif
+  264                                   
+  265                                   .if (TOPBOTTOM_BORDER = 0)
+  266                                 - tacr = $FFFFFA19
+  267                                 - tadr = $FFFFFA1F
+  268                                 - 
+  269                                 - 	move.l	a0,-(a7)
+  270                                 - 	clr.b (tacr).w                   ; Stop timer A
+  271                                 - 	lea	topbord(pc),a0               ; Launch HBL
+  272                                 - 	move.l	a0,$134.w                ; Timer A vector
+  273                                 - 	move.b	#99,(tadr).w             ; Countdown value for timer A
+  274                                 - 	move.b	#4,(tacr).w              ; Delay mode, clock divided by 50
+  275                                 - 	move.l	(a7)+,a0
+  276                                 - .endif
+  277                                   
+  278                                   .if (NO_BORDER = 0)
+  279                                   * // Declarations here ...
+  280                                   .endif
 
 
-                                        Intro_46.S           Page 6       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 6       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  281                                   * // Declarations here ...
-  282                                   .endif
+  281                                   
+  282  00000130  4EB9xxxxxxxx           	jsr (MUSIC+8)                    ; Play SNDH music
   283                                   
-  284  00000110  4EB9xxxxxxxx           	jsr (MUSIC+8)                    ; Play SNDH music
+  284  00000136  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
   285                                   
-  286  00000116  4CDF7FFF               	movem.l	(a7)+,d0-d7/a0-a6
-  287                                   
-  288                                   .if (BLITTER = 0)
-  289                                 - 	bset.b	#7,$ffff8a3c.w           ; Launch Blitter
-  290                                 - 	nop
-  291                                 - .endif
-  292  0000011A  4E73                   	rte
-  293                                   
-  294                                   Wait_vbl:
-  295  0000011C  2F08                   	move.l	a0,-(a7)                 ; Test Synchronisation
-  296  0000011E  41F9xxxxxxxx           	lea	Vsync,a0                     ;
-  297  00000124  51D0                   	sf	(a0)                         ;
-  298  00000126  4A10                   .loop:	tst.b	(a0)                 ;
-  299  00000128  67FC                   	beq.s .loop                      ;
-  300  0000012A  205F                   	move.l	(a7)+,a0                 ;
-  301  0000012C  4E75                   	rts
-  302                                   
-  303                                   .if (NO_BORDER = 0)
-  304                                   ***************************************************************
+  286                                   .if (BLITTER = 0)
+  287                                 - 	bset.b	#7,$ffff8a3c.w           ; Launch Blitter
+  288                                 - 	nop
+  289                                 - .endif
+  290  0000013A  4E73                   	rte
+  291                                   
+  292                                   Wait_vbl:
+  293  0000013C  2F08                   	move.l	a0,-(a7)                 ; Test Synchronisation
+  294  0000013E  41F9xxxxxxxx           	lea	Vsync,a0                     ;
+  295  00000144  51D0                   	sf	(a0)                         ;
+  296  00000146  4A10                   .loop:	tst.b	(a0)                 ;
+  297  00000148  67FC                   	beq.s .loop                      ;
+  298  0000014A  205F                   	move.l	(a7)+,a0                 ;
+  299  0000014C  4E75                   	rts
+  300                                   
+  301                                   .if (NO_BORDER = 0)
+  302                                   ***************************************************************
+  303                                   *                                                             *
+  304                                   *               < Here is the no border rout >                *
   305                                   *                                                             *
-  306                                   *               < Here is the no border rout >                *
-  307                                   *                                                             *
-  308                                   ***************************************************************
-  309                                   * // Declarations here ...
-  310                                   .endif
-  311                                   
-  312                                   .if (BOTTOM_BORDER = 0)
-  313                                 - ***************************************************************
+  306                                   ***************************************************************
+  307                                   * // Declarations here ...
+  308                                   .endif
+  309                                   
+  310                                   .if (BOTTOM_BORDER = 0)
+  311                                 - ***************************************************************
+  312                                 - *                                                             *
+  313                                 - *             < Here is the lower border rout >               *
   314                                 - *                                                             *
-  315                                 - *             < Here is the lower border rout >               *
-  316                                 - *                                                             *
-  317                                 - ***************************************************************
-  318                                 - Over_rout:
-  319                                 - 	sf $fffffa21.w                   ; Stop Timer B
-  320                                 - 	sf $fffffa1b.w                   ;
-  321                                 - 	dcb.w 95,$4e71                   ; 95 nops - Wait line end
-  322                                 - 	sf	$ffff820a.w                  ; Modif Frequency 60 Hz !
-  323                                 - 	dcb.w 28,$4e71                   ; 28 nops - Wait line end
-  324                                 - 	move.b #$2,$ffff820a.w           ; 50 Hz !
-  325                                 - 	rte
-  326                                 - .endif
-  327                                   
-  328                                   .if (TOPBOTTOM_BORDER = 0)
-  329                                 - ***************************************************************
+  315                                 - ***************************************************************
+  316                                 - Over_rout:
+  317                                 - 	sf $fffffa21.w                   ; Stop Timer B
+  318                                 - 	sf $fffffa1b.w                   ;
+  319                                 - 	dcb.w 95,$4e71                   ; 95 nops - Wait line end
+  320                                 - 	sf	$ffff820a.w                  ; Modif Frequency 60 Hz !
+  321                                 - 	dcb.w 28,$4e71                   ; 28 nops - Wait line end
+  322                                 - 	move.b #$2,$ffff820a.w           ; 50 Hz !
+  323                                 - 	rte
+  324                                 - .endif
+  325                                   
+  326                                   .if (TOPBOTTOM_BORDER = 0)
+  327                                 - ***************************************************************
+  328                                 - *                                                             *
+  329                                 - *          < Here is the top and lower border rout >          *
   330                                 - *                                                             *
-  331                                 - *          < Here is the top and lower border rout >          *
-  332                                 - *                                                             *
-  333                                 - ***************************************************************
-  334                                 - herz = $FFFF820A
-  335                                 - iera = $FFFFFA07
-  336                                 - ierb = $FFFFFA09
+  331                                 - ***************************************************************
+  332                                 - herz = $FFFF820A
+  333                                 - iera = $FFFFFA07
+  334                                 - ierb = $FFFFFA09
+  335                                 - isra = $FFFFFA0F
+  336                                 - imra = $FFFFFA13
 
 
-                                        Intro_46.S           Page 7       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 7       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  337                                 - isra = $FFFFFA0F
-  338                                 - imra = $FFFFFA13
-  339                                 - imrb = $FFFFFA15
-  340                                 - 
-  341                                 - topbord:
-  342                                 - 	move.l	a0,-(a7)
-  343                                 - 	move #$2100,SR
-  344                                 - 	stop #$2100                      ; Sync with interrupt
-  345                                 - 	clr.b (tacr).w                   ; Stop timer A
-  346                                 - 	dcb.w 78,$4E71                   ; 78 nops
-  347                                 - 	clr.b (herz).w                   ; 60 Hz
-  348                                 - 	dcb.w 18,$4E71                   ; 18 nops
-  349                                 - 	move.b #2,(herz).w               ; 50 Hz
-  350                                 - 	lea	botbord(pc),a0
-  351                                 - 	move.l a0,$134.w                 ; Timer A vector
-  352                                 - 	move.b #178,(tadr).w             ; Countdown value for timer A
-  353                                 - 	move.b #7,(tacr).w               ; Delay mode, clock divided by 200
-  354                                 - 	move.l (a7)+,a0                  ;
-  355                                 - 	bclr.b #5,(isra).w               ; Clear end of interrupt flag
-  356                                 - my_hbl:
-  357                                 - 	rte
-  358                                 - 
-  359                                 - botbord:
-  360                                 - 	move #$2100,SR                   ;
-  361                                 - 	stop #$2100                      ; sync with interrupt
-  362                                 - 	clr.b (tacr).w                   ; stop timer A
-  363                                 - 	dcb.w 78,$4E71                   ; 78 nops
-  364                                 - 	clr.b (herz).w                   ; 60 Hz
-  365                                 - 	dcb.w 18,$4E71                   ; 18 nops
-  366                                 - 	move.b #2,(herz).w               ; 50 Hz
-  367                                 - 	bclr.b #5,(isra).w               ;
-  368                                 - 	rte
-  369                                 - .endif
-  370                                   
-  371                                   ***************************************************************
+  337                                 - imrb = $FFFFFA15
+  338                                 - 
+  339                                 - topbord:
+  340                                 - 	move.l	a0,-(a7)
+  341                                 - 	move #$2100,SR
+  342                                 - 	stop #$2100                      ; Sync with interrupt
+  343                                 - 	clr.b (tacr).w                   ; Stop timer A
+  344                                 - 	dcb.w 78,$4E71                   ; 78 nops
+  345                                 - 	clr.b (herz).w                   ; 60 Hz
+  346                                 - 	dcb.w 18,$4E71                   ; 18 nops
+  347                                 - 	move.b #2,(herz).w               ; 50 Hz
+  348                                 - 	lea	botbord(pc),a0
+  349                                 - 	move.l a0,$134.w                 ; Timer A vector
+  350                                 - 	move.b #178,(tadr).w             ; Countdown value for timer A
+  351                                 - 	move.b #7,(tacr).w               ; Delay mode, clock divided by 200
+  352                                 - 	move.l (a7)+,a0                  ;
+  353                                 - 	bclr.b #5,(isra).w               ; Clear end of interrupt flag
+  354                                 - my_hbl:
+  355                                 - 	rte
+  356                                 - 
+  357                                 - botbord:
+  358                                 - 	move #$2100,SR                   ;
+  359                                 - 	stop #$2100                      ; sync with interrupt
+  360                                 - 	clr.b (tacr).w                   ; stop timer A
+  361                                 - 	dcb.w 78,$4E71                   ; 78 nops
+  362                                 - 	clr.b (herz).w                   ; 60 Hz
+  363                                 - 	dcb.w 18,$4E71                   ; 18 nops
+  364                                 - 	move.b #2,(herz).w               ; 50 Hz
+  365                                 - 	bclr.b #5,(isra).w               ;
+  366                                 - 	rte
+  367                                 - .endif
+  368                                   
+  369                                   ***************************************************************
+  370                                   *                                                             *
+  371                                   *                Save/Restore System Routines                 *
   372                                   *                                                             *
-  373                                   *                Save/Restore System Routines                 *
-  374                                   *                                                             *
-  375                                   ***************************************************************
-  376                                   Save_and_init_st:
-  377  0000012E  7013                   	moveq #$13,d0                    ; Pause keyboard
-  378  00000130  6100xxxx               	bsr	sendToKeyboard               ;
-  379                                   
-  380  00000134  46FC2700               	move #$2700,SR                   ; Interrupts OFF
-  381                                   		
-  382  00000138  41F9xxxxxxxx           	lea	Save_all,a0                  ; Save adresses parameters
-  383  0000013E  10F8FA01               	move.b $fffffa01.w,(a0)+         ; Datareg
-  384  00000142  10F8FA03               	move.b $fffffa03.w,(a0)+         ; Active edge
-  385  00000146  10F8FA05               	move.b $fffffa05.w,(a0)+         ; Data direction
-  386  0000014A  10F8FA07               	move.b $fffffa07.w,(a0)+         ; Interrupt enable A
-  387  0000014E  10F8FA13               	move.b $fffffa13.w,(a0)+         ; Interupt Mask A
-  388  00000152  10F8FA09               	move.b $fffffa09.w,(a0)+         ; Interrupt enable B
-  389  00000156  10F8FA15               	move.b $fffffa15.w,(a0)+         ; Interrupt mask B
-  390  0000015A  10F8FA17               	move.b $fffffa17.w,(a0)+         ; Automatic/software end of Interupt
-  391  0000015E  10F8FA19               	move.b $fffffa19.w,(a0)+         ; Timer A control
-  392  00000162  10F8FA1B               	move.b $fffffa1b.w,(a0)+         ; Timer B control
+  373                                   ***************************************************************
+  374                                   Save_and_init_st:
+  375  0000014E  7013                   	moveq #$13,d0                    ; Pause keyboard
+  376  00000150  6100xxxx               	bsr	sendToKeyboard               ;
+  377                                   
+  378  00000154  46FC2700               	move #$2700,SR                   ; Interrupts OFF
+  379                                   		
+  380  00000158  41F9xxxxxxxx           	lea	Save_all,a0                  ; Save adresses parameters
+  381  0000015E  10F8FA01               	move.b $fffffa01.w,(a0)+         ; Datareg
+  382  00000162  10F8FA03               	move.b $fffffa03.w,(a0)+         ; Active edge
+  383  00000166  10F8FA05               	move.b $fffffa05.w,(a0)+         ; Data direction
+  384  0000016A  10F8FA07               	move.b $fffffa07.w,(a0)+         ; Interrupt enable A
+  385  0000016E  10F8FA13               	move.b $fffffa13.w,(a0)+         ; Interupt Mask A
+  386  00000172  10F8FA09               	move.b $fffffa09.w,(a0)+         ; Interrupt enable B
+  387  00000176  10F8FA15               	move.b $fffffa15.w,(a0)+         ; Interrupt mask B
+  388  0000017A  10F8FA17               	move.b $fffffa17.w,(a0)+         ; Automatic/software end of Interupt
+  389  0000017E  10F8FA19               	move.b $fffffa19.w,(a0)+         ; Timer A control
+  390  00000182  10F8FA1B               	move.b $fffffa1b.w,(a0)+         ; Timer B control
+  391  00000186  10F8FA1D               	move.b $fffffa1d.w,(a0)+         ; Timer C & D control
+  392  0000018A  10F8FA27               	move.b $fffffa27.w,(a0)+         ; Sync character
 
 
-                                        Intro_46.S           Page 8       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 8       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  393  00000166  10F8FA1D               	move.b $fffffa1d.w,(a0)+         ; Timer C & D control
-  394  0000016A  10F8FA27               	move.b $fffffa27.w,(a0)+         ; Sync character
-  395  0000016E  10F8FA29               	move.b $fffffa29.w,(a0)+         ; USART control
-  396  00000172  10F8FA2B               	move.b $fffffa2b.w,(a0)+         ; Receiver status
-  397  00000176  10F8FA2D               	move.b $fffffa2d.w,(a0)+         ; Transmitter status
-  398  0000017A  10F8FA2F               	move.b $fffffa2f.w,(a0)+         ; USART data
-  399                                             
-  400  0000017E  10F88201               	move.b $ffff8201.w,(a0)+         ; Save Video addresses
-  401  00000182  10F88203               	move.b $ffff8203.w,(a0)+         ;
-  402  00000186  10F8820A               	move.b $ffff820a.w,(a0)+         ;
-  403  0000018A  10F8820D               	move.b $ffff820d.w,(a0)+         ;
-  404                                   	
-  405  0000018E  41F9xxxxxxxx           	lea	Save_rest,a0                 ; Save adresses parameters
-  406  00000194  20F80068               	move.l $068.w,(a0)+              ; HBL
-  407  00000198  20F80070               	move.l $070.w,(a0)+              ; VBL
-  408  0000019C  20F80110               	move.l $110.w,(a0)+              ; TIMER D
-  409  000001A0  20F80114               	move.l $114.w,(a0)+              ; TIMER C
-  410  000001A4  20F80118               	move.l $118.w,(a0)+              ; ACIA
-  411  000001A8  20F80120               	move.l $120.w,(a0)+              ; TIMER B
-  412  000001AC  20F80134               	move.l $134.w,(a0)+              ; TIMER A
-  413  000001B0  20F80484               	move.l $484.w,(a0)+              ; Conterm
-  414                                   
-  415  000001B4  4CF800FF8240           	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
-  416  000001BA  48D000FF               	movem.l	d0-d7,(a0)
-  417                                   
-  418                                   .if (ERROR_SYS =0)
-  419                                 - 	bsr	INPUT_TRACE_ERROR            ; Save vectors list
-  420                                 - .endif
-  421                                   
-  422                                   
-  423                                   ; Available interrupt commands for music if needed...
-  424                                   .if (^^referenced DEBUGTIMER)
-  425                                 - 	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
-  426                                 - 	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
-  427                                 - 	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
-  428                                 - 	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
-  429                                 - 	clr.b $fffffa19.w                ; Stop Timer A
-  430                                 - 	clr.b $fffffa1b.w                ; Stop Timer B
-  431                                 - 	clr.b $fffffa21.w                ; Timer B data at zero
-  432                                 - 	clr.b $fffffa1d.w                ; Stop Timer C & D
-  433                                 - .endif
-  434                                   
-  435                                   .if (BOTTOM_BORDER = 0)
-  436                                 - 	sf $fffffa21.w                   ; Timer B data (number of scanlines to next interrupt)
-  437                                 - 	sf $fffffa1b.w                   ; Timer B control (event mode (HBL))
-  438                                 - 	lea	Over_rout(pc),a0             ; Launch HBL
-  439                                 - 	move.l a0,$120.w                 ;
-  440                                 - 	bset #0,$fffffa07.w              ; Timer B vector
-  441                                 - 	bset #0,$fffffa13.w              ; Timer B on
-  442                                 - 	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
-  443                                 - .endif
-  444                                   
-  445                                   .if (TOPBOTTOM_BORDER = 0)
-  446                                 - 	move.b #%00100000,(iera).w       ; Enable Timer A
-  447                                 - 	move.b #%00100000,(imra).w       ;
-  448                                 - 	and.b #%00010000,(ierb).w        ; Disable all except Timer D
+  393  0000018E  10F8FA29               	move.b $fffffa29.w,(a0)+         ; USART control
+  394  00000192  10F8FA2B               	move.b $fffffa2b.w,(a0)+         ; Receiver status
+  395  00000196  10F8FA2D               	move.b $fffffa2d.w,(a0)+         ; Transmitter status
+  396  0000019A  10F8FA2F               	move.b $fffffa2f.w,(a0)+         ; USART data
+  397                                             
+  398  0000019E  10F88201               	move.b $ffff8201.w,(a0)+         ; Save Video addresses
+  399  000001A2  10F88203               	move.b $ffff8203.w,(a0)+         ;
+  400  000001A6  10F8820A               	move.b $ffff820a.w,(a0)+         ;
+  401  000001AA  10F8820D               	move.b $ffff820d.w,(a0)+         ;
+  402                                   	
+  403  000001AE  41F9xxxxxxxx           	lea	Save_rest,a0                 ; Save adresses parameters
+  404  000001B4  20F80068               	move.l $068.w,(a0)+              ; HBL
+  405  000001B8  20F80070               	move.l $070.w,(a0)+              ; VBL
+  406  000001BC  20F80110               	move.l $110.w,(a0)+              ; TIMER D
+  407  000001C0  20F80114               	move.l $114.w,(a0)+              ; TIMER C
+  408  000001C4  20F80118               	move.l $118.w,(a0)+              ; ACIA
+  409  000001C8  20F80120               	move.l $120.w,(a0)+              ; TIMER B
+  410  000001CC  20F80134               	move.l $134.w,(a0)+              ; TIMER A
+  411  000001D0  20F80484               	move.l $484.w,(a0)+              ; Conterm
+  412                                   
+  413  000001D4  4CF800FF8240           	movem.l	$ffff8240.w,d0-d7        ; Save palette GEM system
+  414  000001DA  48D000FF               	movem.l	d0-d7,(a0)
+  415                                   
+  416                                   .if (ERROR_SYS =0)
+  417                                 - 	bsr	INPUT_TRACE_ERROR            ; Save vectors list
+  418                                 - .endif
+  419                                   
+  420                                   
+  421                                   ; Available interrupt commands for music if needed...
+  422                                   .if (^^referenced DEBUGTIMER)
+  423                                 - 	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
+  424                                 - 	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
+  425                                 - 	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
+  426                                 - 	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
+  427                                 - 	clr.b $fffffa19.w                ; Stop Timer A
+  428                                 - 	clr.b $fffffa1b.w                ; Stop Timer B
+  429                                 - 	clr.b $fffffa21.w                ; Timer B data at zero
+  430                                 - 	clr.b $fffffa1d.w                ; Stop Timer C & D
+  431                                 - .endif
+  432                                   
+  433                                   .if (BOTTOM_BORDER = 0)
+  434                                 - 	sf $fffffa21.w                   ; Timer B data (number of scanlines to next interrupt)
+  435                                 - 	sf $fffffa1b.w                   ; Timer B control (event mode (HBL))
+  436                                 - 	lea	Over_rout(pc),a0             ; Launch HBL
+  437                                 - 	move.l a0,$120.w                 ;
+  438                                 - 	bset #0,$fffffa07.w              ; Timer B vector
+  439                                 - 	bset #0,$fffffa13.w              ; Timer B on
+  440                                 - 	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
+  441                                 - .endif
+  442                                   
+  443                                   .if (TOPBOTTOM_BORDER = 0)
+  444                                 - 	move.b #%00100000,(iera).w       ; Enable Timer A
+  445                                 - 	move.b #%00100000,(imra).w       ;
+  446                                 - 	and.b #%00010000,(ierb).w        ; Disable all except Timer D
+  447                                 - 	and.b #%00010000,(imrb).w        ;
+  448                                 - 	or.b #%01000000,(ierb).w         ; Enable keyboard
 
 
-                                        Intro_46.S           Page 9       6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 9       5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  449                                 - 	and.b #%00010000,(imrb).w        ;
-  450                                 - 	or.b #%01000000,(ierb).w         ; Enable keyboard
-  451                                 - 	or.b #%01000000,(imrb).w         ;
-  452                                 - 	clr.b (tacr).w                   ; Timer A off
-  453                                 - 	lea	my_hbl(pc),a0                ;
-  454                                 - 	move.l	a0,$68.w                 ; Horizontal blank
-  455                                 - 	lea	topbord(pc),a0               ;
-  456                                 - 	move.l a0,$134.w                 ; Timer A vector
-  457                                 - 	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
-  458                                 - .endif
-  459                                   
-  460                                   .if (NO_BORDER = 0)
-  461                                   * // Code here....
-  462                                   .endif
+  449                                 - 	or.b #%01000000,(imrb).w         ;
+  450                                 - 	clr.b (tacr).w                   ; Timer A off
+  451                                 - 	lea	my_hbl(pc),a0                ;
+  452                                 - 	move.l	a0,$68.w                 ; Horizontal blank
+  453                                 - 	lea	topbord(pc),a0               ;
+  454                                 - 	move.l a0,$134.w                 ; Timer A vector
+  455                                 - 	bclr #3,$fffffa17.w              ; Automatic End-Interrupt hbl ON
+  456                                 - .endif
+  457                                   
+  458                                   .if (NO_BORDER = 0)
+  459                                   * // Code here....
+  460                                   .endif
+  461                                   
+  462  000001DE  4E722300               	stop #$2300                      ; Interrupts ON
   463                                   
-  464  000001BE  4E722300               	stop #$2300                      ; Interrupts ON
+  464  000001E2  42380484               	clr.b $484.w                     ; No bip, no repeat
   465                                   
-  466  000001C2  42380484               	clr.b $484.w                     ; No bip, no repeat
-  467                                   
-  468  000001C6  3F3C0004               	move #4,-(sp)                    ; Save & Change Resolution (GetRez)
-  469  000001CA  4E4E                   	trap #14	                       ; Get Current Res.
-  470  000001CC  548F                   	addq.l #2,sp                     ;
-  471  000001CE  33C0xxxxxxxx           	move d0,Old_Resol+2              ; Save it
-  472                                   
-  473  000001D4  3F3C0003               	move #3,-(sp)                    ; Save Screen Address (Logical)
-  474  000001D8  4E4E                   	trap #14                         ;
-  475  000001DA  548F                   	addq.l #2,sp                     ;
-  476  000001DC  23C0xxxxxxxx           	move.l d0,Old_Screen+2           ;
-  477                                   
-  478  000001E2  7011                   	moveq #$11,d0                    ; Resume keyboard
-  479  000001E4  6100xxxx               	bsr	sendToKeyboard               ;
-  480                                   
-  481  000001E8  7012                   	moveq #$12,d0                    ; Kill mouse
-  482  000001EA  6100xxxx               	bsr	sendToKeyboard               ;
+  466  000001E6  3F3C0004               	move #4,-(sp)                    ; Save & Change Resolution (GetRez)
+  467  000001EA  4E4E                   	trap #14	                       ; Get Current Res.
+  468  000001EC  548F                   	addq.l #2,sp                     ;
+  469  000001EE  33C0xxxxxxxx           	move d0,Old_Resol+2              ; Save it
+  470                                   
+  471  000001F4  3F3C0003               	move #3,-(sp)                    ; Save Screen Address (Logical)
+  472  000001F8  4E4E                   	trap #14                         ;
+  473  000001FA  548F                   	addq.l #2,sp                     ;
+  474  000001FC  23C0xxxxxxxx           	move.l d0,Old_Screen+2           ;
+  475                                   
+  476  00000202  7011                   	moveq #$11,d0                    ; Resume keyboard
+  477  00000204  6100xxxx               	bsr	sendToKeyboard               ;
+  478                                   
+  479  00000208  7012                   	moveq #$12,d0                    ; Kill mouse
+  480  0000020A  6100xxxx               	bsr	sendToKeyboard               ;
+  481                                   
+  482  0000020E  6100xxxx               	bsr	flush                        ; Clear buffer keyboard
   483                                   
-  484  000001EE  6100xxxx               	bsr	flush                        ; Clear buffer keyboard
-  485                                   
-  486                                   ; If you don't use Multi_boot option...
-  487  000001F2  51F88260               	sf	$ffff8260.w                  ; Low resolution
-  488  000001F6  11FC0002820A           	move.b	#$2,$ffff820a.w          ; 50 Hz !
-  489  000001FC  4E75                   	rts
-  490                                   
-  491                                   Restore_st:
-  492  000001FE  7013                   	moveq #$13,d0                    ; Pause keyboard
-  493  00000200  6100xxxx               	bsr	sendToKeyboard               ;
+  484                                   ; If you don't use Multi_boot option...
+  485  00000212  51F88260               	sf	$ffff8260.w                  ; Low resolution
+  486  00000216  11FC0002820A           	move.b	#$2,$ffff820a.w          ; 50 Hz !
+  487  0000021C  4E75                   	rts
+  488                                   
+  489                                   Restore_st:
+  490  0000021E  7013                   	moveq #$13,d0                    ; Pause keyboard
+  491  00000220  6100xxxx               	bsr	sendToKeyboard               ;
+  492                                   
+  493  00000224  46FC2700               	move #$2700,SR                   ; Interrupts OFF
   494                                   
-  495  00000204  46FC2700               	move #$2700,SR                   ; Interrupts OFF
+  495  00000228  4EB9xxxxxxxx           	jsr	MUSIC+4                      ; Stop SNDH music
   496                                   
-  497  00000208  4EB9xxxxxxxx           	jsr	MUSIC+4                      ; Stop SNDH music
-  498                                   
-  499  0000020E  41F88800               	lea $ffff8800.w,a0               ; Cut sound
-  500  00000212  20BC08000000           	move.l #$8000000,(a0)            ; Voice A
-  501  00000218  20BC09000000           	move.l #$9000000,(a0)            ; Voice B
-  502  0000021E  20BC0A000000           	move.l #$a000000,(a0)            ; Voice C
-  503                                   
-  504                                   .if (ERROR_SYS = 0)
+  497  0000022E  41F88800               	lea $ffff8800.w,a0               ; Cut sound
+  498  00000232  20BC08000000           	move.l #$8000000,(a0)            ; Voice A
+  499  00000238  20BC09000000           	move.l #$9000000,(a0)            ; Voice B
+  500  0000023E  20BC0A000000           	move.l #$a000000,(a0)            ; Voice C
+  501                                   
+  502                                   .if (ERROR_SYS = 0)
+  503                                 - 	bsr	OUTPUT_TRACE_ERROR           ; Restore vectors list
+  504                                 - .endif
 
 
-                                        Intro_46.S           Page 10      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 10      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  505                                 - 	bsr	OUTPUT_TRACE_ERROR           ; Restore vectors list
-  506                                 - .endif
-  507                                   
-  508  00000224  41F9xxxxxxxx           	lea	Save_all,a0                  ; Restore adresses parameters
-  509  0000022A  11D8FA01               	move.b (a0)+,$fffffa01.w         ; Datareg
-  510  0000022E  11D8FA03               	move.b (a0)+,$fffffa03.w         ; Active edge
-  511  00000232  11D8FA05               	move.b (a0)+,$fffffa05.w         ; Data direction
-  512  00000236  11D8FA07               	move.b (a0)+,$fffffa07.w         ; Interrupt enable A
-  513  0000023A  11D8FA13               	move.b (a0)+,$fffffa13.w         ; Interupt Mask A
-  514  0000023E  11D8FA09               	move.b (a0)+,$fffffa09.w         ; Interrupt enable B
-  515  00000242  11D8FA15               	move.b (a0)+,$fffffa15.w         ; Interrupt mask B
-  516  00000246  11D8FA17               	move.b (a0)+,$fffffa17.w         ; Automatic/software end of interupt
-  517  0000024A  11D8FA19               	move.b (a0)+,$fffffa19.w         ; Timer A control
-  518  0000024E  11D8FA1B               	move.b (a0)+,$fffffa1b.w         ; Timer B control
-  519  00000252  11D8FA1D               	move.b (a0)+,$fffffa1d.w         ; Timer C & D control
-  520  00000256  11D8FA27               	move.b (a0)+,$fffffa27.w         ; Sync character
-  521  0000025A  11D8FA29               	move.b (a0)+,$fffffa29.w         ; USART control
-  522  0000025E  11D8FA2B               	move.b (a0)+,$fffffa2b.w         ; Receiver status
-  523  00000262  11D8FA2D               	move.b (a0)+,$fffffa2d.w         ; Transmitter status
-  524  00000266  11D8FA2F               	move.b (a0)+,$fffffa2f.w         ; USART data
-  525                                   	                                 
-  526  0000026A  11D88201               	move.b (a0)+,$ffff8201.w         ; Restore Video addresses
-  527  0000026E  11D88203               	move.b (a0)+,$ffff8203.w         ;
-  528  00000272  11D8820A               	move.b (a0)+,$ffff820a.w         ;
-  529  00000276  11D8820D               	move.b (a0)+,$ffff820d.w         ;
-  530                                   	
-  531  0000027A  41F9xxxxxxxx           	lea	Save_rest,a0                 ; Restore adresses parameters
-  532  00000280  21D80068               	move.l (a0)+,$068.w              ; HBL
-  533  00000284  21D80070               	move.l (a0)+,$070.w              ; VBL
-  534  00000288  21D80110               	move.l (a0)+,$110.w              ; TIMER D
-  535  0000028C  21D80114               	move.l (a0)+,$114.w              ; TIMER C
-  536  00000290  21D80118               	move.l (a0)+,$118.w              ; ACIA
-  537  00000294  21D80120               	move.l (a0)+,$120.w              ; TIMER B
-  538  00000298  21D80134               	move.l (a0)+,$134.w              ; TIMER A
-  539  0000029C  21D80484               	move.l (a0)+,$484.w              ; Conterm
-  540                                   
-  541  000002A0  4CD000FF               	movem.l	(a0),d0-d7               ; Restore palette GEM system
-  542  000002A4  48F800FF8240           	movem.l	d0-d7,$ffff8240.w        ;
+  505                                   
+  506  00000244  41F9xxxxxxxx           	lea	Save_all,a0                  ; Restore adresses parameters
+  507  0000024A  11D8FA01               	move.b (a0)+,$fffffa01.w         ; Datareg
+  508  0000024E  11D8FA03               	move.b (a0)+,$fffffa03.w         ; Active edge
+  509  00000252  11D8FA05               	move.b (a0)+,$fffffa05.w         ; Data direction
+  510  00000256  11D8FA07               	move.b (a0)+,$fffffa07.w         ; Interrupt enable A
+  511  0000025A  11D8FA13               	move.b (a0)+,$fffffa13.w         ; Interupt Mask A
+  512  0000025E  11D8FA09               	move.b (a0)+,$fffffa09.w         ; Interrupt enable B
+  513  00000262  11D8FA15               	move.b (a0)+,$fffffa15.w         ; Interrupt mask B
+  514  00000266  11D8FA17               	move.b (a0)+,$fffffa17.w         ; Automatic/software end of interupt
+  515  0000026A  11D8FA19               	move.b (a0)+,$fffffa19.w         ; Timer A control
+  516  0000026E  11D8FA1B               	move.b (a0)+,$fffffa1b.w         ; Timer B control
+  517  00000272  11D8FA1D               	move.b (a0)+,$fffffa1d.w         ; Timer C & D control
+  518  00000276  11D8FA27               	move.b (a0)+,$fffffa27.w         ; Sync character
+  519  0000027A  11D8FA29               	move.b (a0)+,$fffffa29.w         ; USART control
+  520  0000027E  11D8FA2B               	move.b (a0)+,$fffffa2b.w         ; Receiver status
+  521  00000282  11D8FA2D               	move.b (a0)+,$fffffa2d.w         ; Transmitter status
+  522  00000286  11D8FA2F               	move.b (a0)+,$fffffa2f.w         ; USART data
+  523                                   	                                 
+  524  0000028A  11D88201               	move.b (a0)+,$ffff8201.w         ; Restore Video addresses
+  525  0000028E  11D88203               	move.b (a0)+,$ffff8203.w         ;
+  526  00000292  11D8820A               	move.b (a0)+,$ffff820a.w         ;
+  527  00000296  11D8820D               	move.b (a0)+,$ffff820d.w         ;
+  528                                   	
+  529  0000029A  41F9xxxxxxxx           	lea	Save_rest,a0                 ; Restore adresses parameters
+  530  000002A0  21D80068               	move.l (a0)+,$068.w              ; HBL
+  531  000002A4  21D80070               	move.l (a0)+,$070.w              ; VBL
+  532  000002A8  21D80110               	move.l (a0)+,$110.w              ; TIMER D
+  533  000002AC  21D80114               	move.l (a0)+,$114.w              ; TIMER C
+  534  000002B0  21D80118               	move.l (a0)+,$118.w              ; ACIA
+  535  000002B4  21D80120               	move.l (a0)+,$120.w              ; TIMER B
+  536  000002B8  21D80134               	move.l (a0)+,$134.w              ; TIMER A
+  537  000002BC  21D80484               	move.l (a0)+,$484.w              ; Conterm
+  538                                   
+  539  000002C0  4CD000FF               	movem.l	(a0),d0-d7               ; Restore palette GEM system
+  540  000002C4  48F800FF8240           	movem.l	d0-d7,$ffff8240.w        ;
+  541                                   
+  542  000002CA  08F80003FA17           	bset.b #3,$fffffa17.w            ; Re-activate Timer C
   543                                   
-  544  000002AA  08F80003FA17           	bset.b #3,$fffffa17.w            ; Re-activate Timer C
+  544  000002D0  4E722300               	stop #$2300                      ; Interrupts ON
   545                                   
-  546  000002B0  4E722300               	stop #$2300                      ; Interrupts ON
-  547                                   
-  548  000002B4  7011                   	moveq #$11,d0                    ; Resume keyboard
-  549  000002B6  61xx                   	bsr.s sendToKeyboard             ;
-  550                                   
-  551  000002B8  7008                   	moveq #$8,d0                     ; Restore mouse
-  552  000002BA  61xx                   	bsr.s sendToKeyboard             ;
+  546  000002D4  7011                   	moveq #$11,d0                    ; Resume keyboard
+  547  000002D6  61xx                   	bsr.s sendToKeyboard             ;
+  548                                   
+  549  000002D8  7008                   	moveq #$8,d0                     ; Restore mouse
+  550  000002DA  61xx                   	bsr.s sendToKeyboard             ;
+  551                                   
+  552  000002DC  61xx                   	bsr.s flush                      ; Clear buffer keyboard
   553                                   
-  554  000002BC  61xx                   	bsr.s flush                      ; Clear buffer keyboard
-  555                                   
-  556                                   Old_Resol:                           ; Restore Old Screen & Resolution
-  557  000002BE  3F3C0000               	move	#0,-(sp)                 ;
-  558                                   Old_Screen:                          ;
-  559  000002C2  2F3C00000000           	move.l #0,-(sp)                  ;
-  560  000002C8  2F17                   	move.l (sp),-(sp)                ;
+  554                                   Old_Resol:                           ; Restore Old Screen & Resolution
+  555  000002DE  3F3C0000               	move	#0,-(sp)                 ;
+  556                                   Old_Screen:                          ;
+  557  000002E2  2F3C00000000           	move.l #0,-(sp)                  ;
+  558  000002E8  2F17                   	move.l (sp),-(sp)                ;
+  559  000002EA  3F3C0005               	move #5,-(sp)                    ;
+  560  000002EE  4E4E                   	trap #14                         ;
 
 
-                                        Intro_46.S           Page 11      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 11      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  561  000002CA  3F3C0005               	move #5,-(sp)                    ;
-  562  000002CE  4E4E                   	trap #14                         ;
-  563  000002D0  4FEF000C               	lea	12(sp),sp                    ;
-  564                                   
-  565  000002D4  3F3C0025               	move.w #$25,-(a7)                ; VSYNC()
-  566  000002D8  4E4E                   	trap #14                         ;
-  567  000002DA  544F                   	addq.w #2,a7                     ;
-  568  000002DC  4E75                   	rts
-  569                                   
-  570                                   sendToKeyboard:                    ; Keyboard access
-  571                                   .wait:
-  572  000002DE  08380001FC00           	btst	#1,$fffffc00.w
-  573  000002E4  67F8                   	beq.s	.wait
-  574  000002E6  11C0FC02               	move.b	d0,$FFFFFC02.w
-  575  000002EA  4E75                   	rts
-  576                                   
-  577                                   flush:                             ; Empty buffer
-  578  000002EC  41F8FC00               	lea	$FFFFFC00.w,a0
-  579                                   .flush:
-  580  000002F0  10280002               	move.b	2(a0),d0
-  581  000002F4  08100000               	btst	#0,(a0)
-  582  000002F8  66F6                   	bne.s	.flush
-  583  000002FA  4E75                   	rts
-  584                                   
+  561  000002F0  4FEF000C               	lea	12(sp),sp                    ;
+  562                                   
+  563  000002F4  3F3C0025               	move.w #$25,-(a7)                ; VSYNC()
+  564  000002F8  4E4E                   	trap #14                         ;
+  565  000002FA  544F                   	addq.w #2,a7                     ;
+  566  000002FC  4E75                   	rts
+  567                                   
+  568                                   sendToKeyboard:                    ; Keyboard access
+  569                                   .wait:
+  570  000002FE  08380001FC00           	btst	#1,$fffffc00.w
+  571  00000304  67F8                   	beq.s	.wait
+  572  00000306  11C0FC02               	move.b	d0,$FFFFFC02.w
+  573  0000030A  4E75                   	rts
+  574                                   
+  575                                   flush:                             ; Empty buffer
+  576  0000030C  41F8FC00               	lea	$FFFFFC00.w,a0
+  577                                   .flush:
+  578  00000310  10280002               	move.b	2(a0),d0
+  579  00000314  08100000               	btst	#0,(a0)
+  580  00000318  66F6                   	bne.s	.flush
+  581  0000031A  4E75                   	rts
+  582                                   
+  583                                   ***************************************************************
+  584                                   ; SUB-ROUTINES                                             // *
   585                                   ***************************************************************
-  586                                   ; SUB-ROUTINES                                             // *
-  587                                   ***************************************************************
+  586                                   
+  587                                   
   588                                   
-  589                                   
-  590                                   
+  589                                   ***************************************************************
+  590  0000031C                         	DATA                                                   // *
   591                                   ***************************************************************
-  592  000002FC                         	DATA                                                   // *
-  593                                   ***************************************************************
-  594                                   
-  595                                   Default_palette:
-  596  00000000  00000777011102220333   	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
+  592                                   
+  593                                   Default_palette:
+  594  00000000  00000777011102220333   	dc.w	$000,$777,$111,$222,$333,$444,$555,$666
        0000000A  044405550666           
-  597  00000010  07770111022203330444   	dc.w	$777,$111,$222,$333,$444,$555,$666,$777
+  595  00000010  07770111022203330444   	dc.w	$777,$111,$222,$333,$444,$555,$666,$777
        0000001A  055506660777           
+  596                                   
+  597                                   * << Full data here >>
   598                                   
-  599                                   * << Full data here >>
-  600                                   
+  599                                   
+  600                                   * <
   601                                   
-  602                                   * <
-  603                                   
-  604                                   MUSIC:
-  605  00000020  60000064600000906000   	incbin "include\\JEDIFUN.SND"            ; SNDH Music played at the VBL
+  602                                   MUSIC:
+  603  00000020  60000064600000906000   	incbin "include\\JEDIFUN.SND"            ; SNDH Music played at the VBL
        0000002A  00AA534E44485449544C   
        00000034  4A6564692046756E0043   
        0000003E  4F4D4D4A656469005249   
@@ -668,13 +666,13 @@
        00000066  46005945415200232330   
        00000070  31002123303100544335   
        0000007A  300054494D4500004844   
-
-
-                                        Intro_46.S           Page 12      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000084  4E5341FA019A43FA0FF8   
        0000008E  203C0000039622D851C8   
+
+
+                                        Intro_46.S           Page 12      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000098  FFFC43FA0FE8203A0FE0   
        000000A2  33400204334004BC3340   
        000000AC  077270014EBA0FD24E75   
@@ -729,13 +727,13 @@
        00000296  FD4861BE0C10004B66F8   
        000002A0  52882C8861B20C10004B   
        000002AA  66F852882D4802B611FC   
-
-
-                                        Intro_46.S           Page 13      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        000002B4  000D880011FC000A8802   
        000002BE  41FA099043FA0B6E20C9   
+
+
+                                        Intro_46.S           Page 13      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        000002C8  20C92089207A014A227A   
        000002D2  0C1A247A03FA47D1287A   
        000002DC  06AA4BD3700072007400   
@@ -790,13 +788,13 @@
        000004C6  000C1E19E14F1E19E15F   
        000004D0  33C70000A48251EE0008   
        000004DA  6000013A4DFA096250EE   
-
-
-                                        Intro_46.S           Page 14      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        000004E4  FDFE1D5900011C994DFA   
        000004EE  07943E01DE19DE473E36   
+
+
+                                        Intro_46.S           Page 14      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        000004F8  70004DFA06F951EEFFFD   
        00000502  1CC7E04F1C876000010C   
        0000050C  4DFA06E751EEFFFD50EE   
@@ -851,13 +849,13 @@
        000006F6  01382C3C000000FE9C07   
        00000700  E54E2E3B68064EFB782A   
        0000070A  000000000000000E0000   
-
-
-                                        Intro_46.S           Page 15      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000714  001C0000002C00000032   
        0000071E  00000040000000620000   
+
+
+                                        Intro_46.S           Page 15      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000728  0090000000BE00000024   
        00000732  08EE0004FFFE08AE0001   
        0000073C  FFFE60AE08EE0001FFFE   
@@ -912,13 +910,13 @@
        00000926  4DFA03261C87BE056502   
        00000930  44064DFA03111C864DFA   
        0000093A  0348DE473E3670004DFA   
-
-
-                                        Intro_46.S           Page 16      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000944  05083C87609E4DFA03F6   
        0000094E  7A001A1CE9454DF65000   
+
+
+                                        Intro_46.S           Page 16      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000958  23CE0000A29860881A1C   
        00000962  44054DFA02DF1C856000   
        0000096C  FF7C4DFA057C1A1CDA45   
@@ -973,13 +971,13 @@
        00000B56  4DFA00F2DF56DA564DFA   
        00000B60  008E1C85E04D1D450001   
        00000B6A  3A1F60144DFA007E3A16   
-
-
-                                        Intro_46.S           Page 17      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000B74  E15D1E3A00CD4887DA47   
        00000B7E  3F0560E04DFA006E0896   
+
+
+                                        Intro_46.S           Page 17      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000B88  00044A2E004E670A3D7A   
        00000B92  02B0FFF808D6000408AE   
        00000B9C  000400014A2E0050670C   
@@ -1034,13 +1032,13 @@
        00000D86  01010202020203030303   
        00000D90  04040000010101020202   
        00000D9A  03030304040405050000   
-
-
-                                        Intro_46.S           Page 18      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000DA4  01010202020303040404   
        00000DAE  05050606000001010202   
+
+
+                                        Intro_46.S           Page 18      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000DB8  03030404050506060707   
        00000DC2  00010102020303040405   
        00000DCC  05060607070800010102   
@@ -1095,13 +1093,13 @@
        00000FB6  00000000000000000000   
        00000FC0  00000000000000000000   
        00000FCA  00000000000000000000   
-
-
-                                        Intro_46.S           Page 19      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00000FD4  00000000000000000000   
        00000FDE  00000000000000000000   
+
+
+                                        Intro_46.S           Page 19      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00000FE8  00000000000000000000   
        00000FF2  00000000000000000000   
        00000FFC  00000000000000000000   
@@ -1156,13 +1154,13 @@
        000011E6  00000000000000000000   
        000011F0  00000000000000000000   
        000011FA  00000000000000000000   
-
-
-                                        Intro_46.S           Page 20      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001204  00000000000000000000   
        0000120E  00000000000000000000   
+
+
+                                        Intro_46.S           Page 20      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001218  00000000000000000000   
        00001222  00000000000000000000   
        0000122C  00000000000000000000   
@@ -1217,13 +1215,13 @@
        00001416  00000000000000000000   
        00001420  00000000000000000000   
        0000142A  00000000000000000000   
-
-
-                                        Intro_46.S           Page 21      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001434  00000000000000000000   
        0000143E  00000000000000000000   
+
+
+                                        Intro_46.S           Page 21      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001448  00000000000000000000   
        00001452  00000000000000000000   
        0000145C  00000000000000000000   
@@ -1278,13 +1276,13 @@
        00001646  00000000000000000000   
        00001650  00000000000000000000   
        0000165A  00000000000000000000   
-
-
-                                        Intro_46.S           Page 22      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001664  00000000000000000000   
        0000166E  00000000000000000000   
+
+
+                                        Intro_46.S           Page 22      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001678  00000000000000000000   
        00001682  00000000000000000000   
        0000168C  00000000000000000000   
@@ -1339,13 +1337,13 @@
        00001876  00000000000000000000   
        00001880  00000000000000000000   
        0000188A  00000000000000000000   
-
-
-                                        Intro_46.S           Page 23      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001894  00000000000000000000   
        0000189E  00000000000000000000   
+
+
+                                        Intro_46.S           Page 23      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        000018A8  00000000000000000000   
        000018B2  00000000000000000000   
        000018BC  00000000000000000000   
@@ -1400,13 +1398,13 @@
        00001AA6  00000000000000000000   
        00001AB0  00000000000000000000   
        00001ABA  00000000000000000000   
-
-
-                                        Intro_46.S           Page 24      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001AC4  00000000000000000000   
        00001ACE  00000000000000000000   
+
+
+                                        Intro_46.S           Page 24      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001AD8  00000000000000000000   
        00001AE2  00000000000000000000   
        00001AEC  00000000000000000000   
@@ -1461,13 +1459,13 @@
        00001CD6  00000000000000000000   
        00001CE0  00000000000000000000   
        00001CEA  00000000000000000000   
-
-
-                                        Intro_46.S           Page 25      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001CF4  00000000000000000000   
        00001CFE  00000000000000000000   
+
+
+                                        Intro_46.S           Page 25      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001D08  00000000000000000000   
        00001D12  00000000000000000000   
        00001D1C  00000000000000000000   
@@ -1522,13 +1520,13 @@
        00001F06  0018FE0F00170F00130F   
        00001F10  00100D0008000000FF54   
        00001F1A  484BFDFB0B0D0014FE0F   
-
-
-                                        Intro_46.S           Page 26      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00001F24  001E0F0022FDFB070F00   
        00001F2E  180E0010FE0E0013FD0C   
+
+
+                                        Intro_46.S           Page 26      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00001F38  0018000000FF54484BFE   
        00001F42  0F00000F00030E00070E   
        00001F4C  000C0D00000D00030C00   
@@ -1583,13 +1581,13 @@
        00002136  01000D00000DFF000DFE   
        00002140  000DFF000D00000D0100   
        0000214A  0D02000D01000D00000D   
-
-
-                                        Intro_46.S           Page 27      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00002154  FF000DFE000DFF000D00   
        0000215E  000D01000D02000D0100   
+
+
+                                        Intro_46.S           Page 27      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00002168  0D00000DFF000DFE000D   
        00002172  FF000D00000D01000D02   
        0000217C  000D01000D00000DFF00   
@@ -1644,13 +1642,13 @@
        00002366  F9350228F936022DF936   
        00002370  0232F9370237F937023C   
        0000237A  F9380241F9380246F939   
-
-
-                                        Intro_46.S           Page 28      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00002384  024BF9390250F93A0255   
        0000238E  F93A025AF93B025FF93B   
+
+
+                                        Intro_46.S           Page 28      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00002398  0264F93C0269F93C026E   
        000023A2  F93D0273F93D0278F93E   
        000023AC  027DF93E0282F93F0287   
@@ -1705,13 +1703,13 @@
        00002596  02FE052E022E022E02FE   
        000025A0  020002FE043002300230   
        000025AA  02FE020002FE04300230   
-
-
-                                        Intro_46.S           Page 29      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        000025B4  023002FE020002FE0533   
        000025BE  0233023302FE020002FE   
+
+
+                                        Intro_46.S           Page 29      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        000025C8  053302FE0435023702FE   
        000025D2  020002FE043002300230   
        000025DC  02FE020002FE04300230   
@@ -1766,13 +1764,13 @@
        000027C6  011B01180213010C01FE   
        000027D0  030002FE010C010E010F   
        000027DA  0218011601FE030002FE   
-
-
-                                        Intro_46.S           Page 30      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        000027E4  0118010C011B021D011F   
        000027EE  01FE030001FE012201FE   
+
+
+                                        Intro_46.S           Page 30      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        000027F8  0300010001FE0118020C   
        00002802  02FE030002FE010C0113   
        0000280C  01180216011301FE0300   
@@ -1827,13 +1825,13 @@
        000029F6  0216011301FE030002FE   
        00002A00  010C020A0207010A01FE   
        00002A0A  030002FE010A020E0211   
-
-
-                                        Intro_46.S           Page 31      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00002A14  011301FE0300020002FE   
        00002A1E  010C04FE030002FE0118   
+
+
+                                        Intro_46.S           Page 31      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00002A28  011B01180213010C01FE   
        00002A32  030002FE010C010E010F   
        00002A3C  0218011601FE030002FE   
@@ -1888,13 +1886,13 @@
        00002C26  02FE0118020C02FE0300   
        00002C30  02FE010C011301180216   
        00002C3A  011301FE030002FE010C   
-
-
-                                        Intro_46.S           Page 32      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00002C44  020A0207010A01FE0300   
        00002C4E  02FE010A020E02110113   
+
+
+                                        Intro_46.S           Page 32      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00002C58  01FE0300020002FE010C   
        00002C62  04FE030002FE0118011B   
        00002C6C  01180213010C01FE0300   
@@ -1949,13 +1947,13 @@
        00002E56  013F013A013701340235   
        00002E60  01FE003001FE063C0137   
        00002E6A  0133013001330137013C   
-
-
-                                        Intro_46.S           Page 33      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
-
-
        00002E74  01370133013001330137   
        00002E7E  013C013701330130012E   
+
+
+                                        Intro_46.S           Page 33      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
+
+
        00002E88  01290126012201260129   
        00002E92  012E0129012601220126   
        00002E9C  0129012E012901260122   
@@ -1999,422 +1997,420 @@
        00003018  024D014F015B015001FC   
        00003022  014C014F014B015601FF   
        0000302C  54484B450000           
-  606                                   	even
-  607                                   
+  604                                   	even
+  605                                   
+  606                                   ***************************************************************
+  607  00003032                         	BSS                                                    // *
   608                                   ***************************************************************
-  609  00003032                         	BSS                                                    // *
-  610                                   ***************************************************************
+  609                                   
+  610                                   * << Full data here >>
   611                                   
-  612                                   * << Full data here >>
-  613                                   
+  612                                   
+  613                                   * <
   614                                   
-  615                                   * <
-  616                                   
+  615                                   Vsync:
+  616  00000000 =00000001               	ds.w 1  ; Vertical Sync with int $70.w
 
 
-                                        Intro_46.S           Page 34      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 34      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  617                                   Vsync:
-  618  00000000 =00000001               	ds.w 1  ; Vertical Sync with int $70.w
-  619                                   
-  620                                   Save_stack:
-  621  00000002 =00000001               	ds.l 1  ; Stack
-  622                                   
-  623                                   Save_all:
-  624  00000006 =00000010               	ds.b 16 ; MFP Interrupts
-  625  00000016 =00000004               	ds.b 4	; Video : f8201.w -> f820d.w
-  626                                   
-  627                                   Save_rest:
-  628  0000001A =00000001               	ds.l 1	; Autovector (HBL)
-  629  0000001E =00000001               	ds.l 1	; Autovector (VBL)
-  630  00000022 =00000001               	ds.l 1	; Timer D (USART timer)
-  631  00000026 =00000001               	ds.l 1	; Timer C (200hz Clock)
-  632  0000002A =00000001               	ds.l 1	; Keyboard/MIDI (ACIA) 
-  633  0000002E =00000001               	ds.l 1	; Timer B (HBL)
-  634  00000032 =00000001               	ds.l 1	; Timer A
-  635  00000036 =00000001               	ds.l 1	; Output Bip Bop
-  636                                   
-  637                                   Palette:
-  638  0000003A =00000010               	ds.w 16 ; Palette System
-  639                                   
-  640                                   Screen:     ; Screens from buffer
-  641  0000005A =00000100               	ds.b 256
-  642  0000015A =0000FA00               	ds.b SIZE_OF_SCREEN*(NB_OF_SCREEN+1)
-  643                                   
+  617                                   
+  618                                   Save_stack:
+  619  00000002 =00000001               	ds.l 1  ; Stack
+  620                                   
+  621                                   Save_all:
+  622  00000006 =00000010               	ds.b 16 ; MFP Interrupts
+  623  00000016 =00000004               	ds.b 4	; Video : f8201.w -> f820d.w
+  624                                   
+  625                                   Save_rest:
+  626  0000001A =00000001               	ds.l 1	; Autovector (HBL)
+  627  0000001E =00000001               	ds.l 1	; Autovector (VBL)
+  628  00000022 =00000001               	ds.l 1	; Timer D (USART timer)
+  629  00000026 =00000001               	ds.l 1	; Timer C (200hz Clock)
+  630  0000002A =00000001               	ds.l 1	; Keyboard/MIDI (ACIA) 
+  631  0000002E =00000001               	ds.l 1	; Timer B (HBL)
+  632  00000032 =00000001               	ds.l 1	; Timer A
+  633  00000036 =00000001               	ds.l 1	; Output Bip Bop
+  634                                   
+  635                                   Palette:
+  636  0000003A =00000010               	ds.w 16 ; Palette System
+  637                                   
+  638                                   Screen:     ; Screens from buffer
+  639  0000005A =00000100               	ds.b 256
+  640  0000015A =0000FA00               	ds.b SIZE_OF_SCREEN*(NB_OF_SCREEN+1)
+  641                                   
+  642                                   ***************************************************************
+  643  0000FB5A                         	TEXT                                                   // *
   644                                   ***************************************************************
-  645  0000FB5A                         	TEXT                                                   // *
-  646                                   ***************************************************************
-  647                                   
-  648                                   .if (FADE_INTRO = 0)
-  649                                 - ***************************************************************
-  650                                 - *                                                             *
-  651                                 - *                    FADING WHITE TO BLACK                    *
-  652                                 - *                  (Don't use VBL with it !)                  *
-  653                                 - *                                                             *
-  654                                 - ***************************************************************
-  655                                 - fadein:
-  656                                 - 	move.l	#$777,d0
-  657                                 - .deg:
-  658                                 -  rept 3
-  659                                 - 	bsr.s	wart
-  660                                 -  endr
-  661                                 - 	lea	$ffff8240.w,a0
-  662                                 - 	moveq	#15,d1
-  663                                 - .chg1:
-  664                                 - 	move.w	d0,(a0)+
-  665                                 - 	dbf	d1,.chg1
-  666                                 - 	sub.w	#$111,d0
-  667                                 - 	bne.s	.deg
-  668                                 - 	bsr.s	black_out              ; All palette colors to zero
-  669                                 - 	rts
-  670                                 - 
-  671                                 - black_out:                         ; Clear Palette colors
-  672                                 - 	moveq  #0,d0
+  645                                   
+  646                                   .if (FADE_INTRO = 0)
+  647                                 - ***************************************************************
+  648                                 - *                                                             *
+  649                                 - *                    FADING WHITE TO BLACK                    *
+  650                                 - *                  (Don't use VBL with it !)                  *
+  651                                 - *                                                             *
+  652                                 - ***************************************************************
+  653                                 - fadein:
+  654                                 - 	move.l	#$777,d0
+  655                                 - .deg:
+  656                                 -  rept 3
+  657                                 - 	bsr.s	wart
+  658                                 -  endr
+  659                                 - 	lea	$ffff8240.w,a0
+  660                                 - 	moveq	#15,d1
+  661                                 - .chg1:
+  662                                 - 	move.w	d0,(a0)+
+  663                                 - 	dbf	d1,.chg1
+  664                                 - 	sub.w	#$111,d0
+  665                                 - 	bne.s	.deg
+  666                                 - 	bsr.s	black_out              ; All palette colors to zero
+  667                                 - 	rts
+  668                                 - 
+  669                                 - black_out:                         ; Clear Palette colors
+  670                                 - 	moveq  #0,d0
+  671                                 - 	moveq  #0,d1
+  672                                 - 	moveq  #0,d2
 
 
-                                        Intro_46.S           Page 35      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 35      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  673                                 - 	moveq  #0,d1
-  674                                 - 	moveq  #0,d2
-  675                                 - 	moveq  #0,d3
-  676                                 - 	moveq  #0,d4
-  677                                 - 	moveq  #0,d5
-  678                                 - 	moveq  #0,d6
-  679                                 - 	moveq  #0,d7
-  680                                 - 	movem.l d0-d7,$ffff8240.w
-  681                                 - 	rts
-  682                                 - 
-  683                                 - wart:                              ; VSYNC()
-  684                                 - 	move.l	d0,-(sp)
-  685                                 - 	move.l	$466.w,d0
-  686                                 - .att:	cmp.l	$466.w,d0
-  687                                 - 	beq.s	.att
-  688                                 - 	move.l	(sp)+,d0
-  689                                 - 	rts
-  690                                 - .endif
-  691                                   
-  692                                   .if (ERROR_SYS = 0)
-  693                                 - ***************************************************************
-  694                                 - *                                                             *
-  695                                 - *               Error Routines (Dbug 2/Next)                  *
-  696                                 - *          http://www.defence-force.org/index.htm             *
-  697                                 - *                                                             *
-  698                                 - ***************************************************************
-  699                                 - INPUT_TRACE_ERROR:
-  700                                 - 	lea $8.w,a0                       ; Adresse de base des vecteurs (Erreur de Bus)
-  701                                 - 	lea liste_vecteurs,a1             ;
-  702                                 - 	moveq #10-1,d0                    ; On d^^étourne toutes les erreur possibles...
-  703                                 - .b_sauve_exceptions:
-  704                                 - 	move.l (a1)+,d1                   ; Adresse de la nouvelle routine
-  705                                 - 	move.l (a0)+,-4(a1)               ; Sauve l'ancienne
-  706                                 - 	move.l d1,-4(a0)                  ; Installe la mienne
-  707                                 - 	dbra d0,.b_sauve_exceptions
-  708                                 - 	rts
-  709                                 - 
-  710                                 - OUTPUT_TRACE_ERROR:
-  711                                 - 	lea $8.w,a0
-  712                                 - 	lea liste_vecteurs,a1
-  713                                 - 	moveq #10-1,d0
-  714                                 - .restaure_illegal:
-  715                                 - 	move.l (a1)+,(a0)+
-  716                                 - 	dbra d0,.restaure_illegal
-  717                                 - 	rts
-  718                                 - 
-  719                                 - routine_bus: ; BUS - GREEN
-  720                                 - 	move.w #$070,d0
-  721                                 - 	bra.s execute_detournement
-  722                                 - routine_adresse:	;	ADDRESS - BLUE
-  723                                 - 	move.w #$007,d0
-  724                                 - 	bra.s execute_detournement
-  725                                 - routine_illegal:	;	ILLEGAL - RED
-  726                                 - 	move.w #$700,d0
-  727                                 - 	bra.s execute_detournement
-  728                                 - routine_div:	;	DIV ERROR - YELLOW
+  673                                 - 	moveq  #0,d3
+  674                                 - 	moveq  #0,d4
+  675                                 - 	moveq  #0,d5
+  676                                 - 	moveq  #0,d6
+  677                                 - 	moveq  #0,d7
+  678                                 - 	movem.l d0-d7,$ffff8240.w
+  679                                 - 	rts
+  680                                 - 
+  681                                 - wart:                              ; VSYNC()
+  682                                 - 	move.l	d0,-(sp)
+  683                                 - 	move.l	$466.w,d0
+  684                                 - .att:	cmp.l	$466.w,d0
+  685                                 - 	beq.s	.att
+  686                                 - 	move.l	(sp)+,d0
+  687                                 - 	rts
+  688                                 - .endif
+  689                                   
+  690                                   .if (ERROR_SYS = 0)
+  691                                 - ***************************************************************
+  692                                 - *                                                             *
+  693                                 - *               Error Routines (Dbug 2/Next)                  *
+  694                                 - *          http://www.defence-force.org/index.htm             *
+  695                                 - *                                                             *
+  696                                 - ***************************************************************
+  697                                 - INPUT_TRACE_ERROR:
+  698                                 - 	lea $8.w,a0                       ; Adresse de base des vecteurs (Erreur de Bus)
+  699                                 - 	lea liste_vecteurs,a1             ;
+  700                                 - 	moveq #10-1,d0                    ; On d^^étourne toutes les erreur possibles...
+  701                                 - .b_sauve_exceptions:
+  702                                 - 	move.l (a1)+,d1                   ; Adresse de la nouvelle routine
+  703                                 - 	move.l (a0)+,-4(a1)               ; Sauve l'ancienne
+  704                                 - 	move.l d1,-4(a0)                  ; Installe la mienne
+  705                                 - 	dbra d0,.b_sauve_exceptions
+  706                                 - 	rts
+  707                                 - 
+  708                                 - OUTPUT_TRACE_ERROR:
+  709                                 - 	lea $8.w,a0
+  710                                 - 	lea liste_vecteurs,a1
+  711                                 - 	moveq #10-1,d0
+  712                                 - .restaure_illegal:
+  713                                 - 	move.l (a1)+,(a0)+
+  714                                 - 	dbra d0,.restaure_illegal
+  715                                 - 	rts
+  716                                 - 
+  717                                 - routine_bus: ; BUS - GREEN
+  718                                 - 	move.w #$070,d0
+  719                                 - 	bra.s execute_detournement
+  720                                 - routine_adresse:	;	ADDRESS - BLUE
+  721                                 - 	move.w #$007,d0
+  722                                 - 	bra.s execute_detournement
+  723                                 - routine_illegal:	;	ILLEGAL - RED
+  724                                 - 	move.w #$700,d0
+  725                                 - 	bra.s execute_detournement
+  726                                 - routine_div:	;	DIV ERROR - YELLOW
+  727                                 - 	move.w #$770,d0
+  728                                 - 	bra.s execute_detournement
 
 
-                                        Intro_46.S           Page 36      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 36      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  729                                 - 	move.w #$770,d0
-  730                                 - 	bra.s execute_detournement
-  731                                 - routine_chk:	;	CHECK - LIGHT BLUE
-  732                                 - 	move.w #$077,d0
-  733                                 - 	bra.s execute_detournement
-  734                                 - routine_trapv:	;	TRAP ERROR - WHITE
-  735                                 - 	move.w #$777,d0
-  736                                 - 	bra.s execute_detournement
-  737                                 - routine_viole:	;	VIOLATION ACCESS - PURPLE
-  738                                 - 	move.w #$707,d0
-  739                                 - 	bra.s execute_detournement
-  740                                 - routine_trace:	;	TRACE ERROR - DARK BLACK
-  741                                 - 	move.w #$333,d0
-  742                                 - 	bra.s execute_detournement
-  743                                 - routine_line_a:	;	LINE A ERROR - ORANGE
-  744                                 - 	move.w #$740,d0
-  745                                 - 	bra.s execute_detournement
-  746                                 - routine_line_f:	;	LINE F ERROR - LIGHT GREEN
-  747                                 - 	move.w #$474,d0
-  748                                 - execute_detournement:
-  749                                 - 	move.w #$2700,SR                  ; Deux erreurs ^^à suivre... non mais !
-  750                                 - 
-  751                                 - 	move.w	#$0FF,d1
-  752                                 - .loop:
-  753                                 - 	move.w d0,$ffff8240.w             ; Effet raster
-  754                                 - 	move.w #0,$ffff8240.w
-  755                                 - 	cmp.b #$3b,$fffffc02.w
-  756                                 - 	dbra d1,.loop
-  757                                 - 
-  758                                 - 	pea ESCAPE_PRG                    ; Put the return adress
-  759                                 - 	move.w #$2700,-(sp)               ; J'esp^^ère !!!...
-  760                                 - 	addq.l #2,2(sp)                   ; 24/6
-  761                                 - 	rte                               ; 20/5 => Total hors tempo = 78-> 80/20 nops
-  762                                 - 
-  763                                 - liste_vecteurs:
-  764                                 - 	dc.l routine_bus	; Vert
-  765                                 - 	dc.l routine_adresse	; Bleu
-  766                                 - 	dc.l routine_illegal	; Rouge
-  767                                 - 	dc.l routine_div	; Jaune
-  768                                 - 	dc.l routine_chk	; Ciel
-  769                                 - 	dc.l routine_trapv	; Blanc
-  770                                 - 	dc.l routine_viole	; Violet
-  771                                 - 	dc.l routine_trace	; Gris
-  772                                 - 	dc.l routine_line_a	; Orange
-  773                                 - 	dc.l routine_line_f	; Vert clair
-  774                                 - 	even
-  775                                 - .endif
-  776                                   
-  777                                   .if (STF_INITS = 0)
-  778                                   ***************************************************************************
-  779                                   *                                                                         *
-  780                                   * Multi Atari Boot code.                                                  *
-  781                                   * If you have done an ST demo, use that boot to run it on these machines: *
-  782                                   * ST, STe, Mega-ST,TT,Falcon,CT60                                         *
-  783                                   * More info:                                                              *
-  784                                   * http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html        *
+  729                                 - routine_chk:	;	CHECK - LIGHT BLUE
+  730                                 - 	move.w #$077,d0
+  731                                 - 	bra.s execute_detournement
+  732                                 - routine_trapv:	;	TRAP ERROR - WHITE
+  733                                 - 	move.w #$777,d0
+  734                                 - 	bra.s execute_detournement
+  735                                 - routine_viole:	;	VIOLATION ACCESS - PURPLE
+  736                                 - 	move.w #$707,d0
+  737                                 - 	bra.s execute_detournement
+  738                                 - routine_trace:	;	TRACE ERROR - DARK BLACK
+  739                                 - 	move.w #$333,d0
+  740                                 - 	bra.s execute_detournement
+  741                                 - routine_line_a:	;	LINE A ERROR - ORANGE
+  742                                 - 	move.w #$740,d0
+  743                                 - 	bra.s execute_detournement
+  744                                 - routine_line_f:	;	LINE F ERROR - LIGHT GREEN
+  745                                 - 	move.w #$474,d0
+  746                                 - execute_detournement:
+  747                                 - 	move.w #$2700,SR                  ; Deux erreurs ^^à suivre... non mais !
+  748                                 - 
+  749                                 - 	move.w	#$0FF,d1
+  750                                 - .loop:
+  751                                 - 	move.w d0,$ffff8240.w             ; Effet raster
+  752                                 - 	move.w #0,$ffff8240.w
+  753                                 - 	cmp.b #$3b,$fffffc02.w
+  754                                 - 	dbra d1,.loop
+  755                                 - 
+  756                                 - 	pea ESCAPE_PRG                    ; Put the return adress
+  757                                 - 	move.w #$2700,-(sp)               ; J'esp^^ère !!!...
+  758                                 - 	addq.l #2,2(sp)                   ; 24/6
+  759                                 - 	rte                               ; 20/5 => Total hors tempo = 78-> 80/20 nops
+  760                                 - 
+  761                                 - liste_vecteurs:
+  762                                 - 	dc.l routine_bus	; Vert
+  763                                 - 	dc.l routine_adresse	; Bleu
+  764                                 - 	dc.l routine_illegal	; Rouge
+  765                                 - 	dc.l routine_div	; Jaune
+  766                                 - 	dc.l routine_chk	; Ciel
+  767                                 - 	dc.l routine_trapv	; Blanc
+  768                                 - 	dc.l routine_viole	; Violet
+  769                                 - 	dc.l routine_trace	; Gris
+  770                                 - 	dc.l routine_line_a	; Orange
+  771                                 - 	dc.l routine_line_f	; Vert clair
+  772                                 - 	even
+  773                                 - .endif
+  774                                   
+  775                                   .if (STF_INITS = 0)
+  776                                   ***************************************************************************
+  777                                   *                                                                         *
+  778                                   * Multi Atari Boot code.                                                  *
+  779                                   * If you have done an ST demo, use that boot to run it on these machines: *
+  780                                   * ST, STe, Mega-ST,TT,Falcon,CT60                                         *
+  781                                   * More info:                                                              *
+  782                                   * http://leonard.oxg.free.fr/articles/multi_atari/multi_atari.html        *
+  783                                   *                                                                         *
+  784                                   ***************************************************************************
 
 
-                                        Intro_46.S           Page 37      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 37      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  785                                   *                                                                         *
-  786                                   ***************************************************************************
-  787                                   Multi_boot:
-  788  000002FC  51F801FE               	sf $1fe.w
-  789  00000300  203805A0               	move.l $5a0.w,d0
-  790  00000304  6700xxxx               	beq noCookie
-  791  00000308  2040                   	move.l d0,a0
-  792                                   .loop:
-  793  0000030A  2018                   	move.l (a0)+,d0
-  794  0000030C  6700xxxx               	beq noCookie
-  795  00000310  B0BC5F4D4348           	cmp.l #'_MCH',d0
-  796  00000316  67xx                   	beq.s .find
-  797  00000318  B0BC43543630           	cmp.l #'CT60',d0
-  798  0000031E  66xx                   	bne.s .skip
-  799                                   
-  800                                   ; CT60, switch off the cache
-  801  00000320  4850                   	pea (a0)
-  802                                   
-  803  00000322  41FAxxxx               	lea bCT60(pc),a0
-  804  00000326  50D0                   	st (a0)
-  805                                   
-  806  00000328  4267                   	clr.w -(a7) ; param = 0 ( switch off all caches )
-  807  0000032A  3F3C0005               	move.w #5,-(a7) ; opcode
-  808  0000032E  3F3C00A0               	move.w #160,-(a7)
-  809  00000332  4E4E                   	trap #14
-  810  00000334  5C4F                   	addq.w #6,a7
-  811  00000336  205F                   	move.l (a7)+,a0
-  812                                   .skip:
-  813  00000338  5848                   	addq.w #4,a0
-  814  0000033A  60CE                   	bra.s .loop
-  815                                   
-  816                                   .find:
-  817  0000033C  3E18                   	move.w (a0)+,d7
-  818  0000033E  6700xxxx               	beq noCookie ; STF
-  819  00000342  11C701FE               	move.b d7,$1fe.w
-  820                                   
-  821  00000346  0C470001               	cmpi.w #1,d7
-  822  0000034A  66xx                   	bne.s .noSTE
-  823  0000034C  082800040001           	btst.b #4,1(a0)
-  824  00000352  67xx                   	beq.s .noMegaSTE
-  825  00000354  42388E21               	clr.b $ffff8e21.w ; 8Mhz MegaSTE
-  826                                   
-  827                                   .noMegaSTE:
-  828  00000358  60xx                   	bra.s noCookie
-  829                                   
-  830                                   .noSTE:
-  831                                   ; => here TT or FALCON
-  832  0000035A  08B800058007           	bclr.b	#5,$FFFF8007.w ; Mode STE on Falcon
-  833  00000360  08B800028007           	bclr.b	#2,$FFFF8007.w ; Blitter at 8Mhz
-  834                                   
-  835                                   ; Always switch off the cache on these machines.
-  836  00000366  103Axxxx               	move.b bCT60(pc),d0
-  837  0000036A  66xx                   	bne.s .noMovec
-  838                                   
-  839  0000036C  7000                   	moveq #0,d0
-  840  0000036E  4E7B0002               	dc.l $4e7b0002 ; movec d0,cacr ; switch off cache
+  785                                   Multi_boot:
+  786  0000031C  51F801FE               	sf $1fe.w
+  787  00000320  203805A0               	move.l $5a0.w,d0
+  788  00000324  6700xxxx               	beq noCookie
+  789  00000328  2040                   	move.l d0,a0
+  790                                   .loop:
+  791  0000032A  2018                   	move.l (a0)+,d0
+  792  0000032C  6700xxxx               	beq noCookie
+  793  00000330  B0BC5F4D4348           	cmp.l #'_MCH',d0
+  794  00000336  67xx                   	beq.s .find
+  795  00000338  B0BC43543630           	cmp.l #'CT60',d0
+  796  0000033E  66xx                   	bne.s .skip
+  797                                   
+  798                                   ; CT60, switch off the cache
+  799  00000340  4850                   	pea (a0)
+  800                                   
+  801  00000342  41FAxxxx               	lea bCT60(pc),a0
+  802  00000346  50D0                   	st (a0)
+  803                                   
+  804  00000348  4267                   	clr.w -(a7) ; param = 0 ( switch off all caches )
+  805  0000034A  3F3C0005               	move.w #5,-(a7) ; opcode
+  806  0000034E  3F3C00A0               	move.w #160,-(a7)
+  807  00000352  4E4E                   	trap #14
+  808  00000354  5C4F                   	addq.w #6,a7
+  809  00000356  205F                   	move.l (a7)+,a0
+  810                                   .skip:
+  811  00000358  5848                   	addq.w #4,a0
+  812  0000035A  60CE                   	bra.s .loop
+  813                                   
+  814                                   .find:
+  815  0000035C  3E18                   	move.w (a0)+,d7
+  816  0000035E  6700xxxx               	beq noCookie ; STF
+  817  00000362  11C701FE               	move.b d7,$1fe.w
+  818                                   
+  819  00000366  0C470001               	cmpi.w #1,d7
+  820  0000036A  66xx                   	bne.s .noSTE
+  821  0000036C  082800040001           	btst.b #4,1(a0)
+  822  00000372  67xx                   	beq.s .noMegaSTE
+  823  00000374  42388E21               	clr.b $ffff8e21.w ; 8Mhz MegaSTE
+  824                                   
+  825                                   .noMegaSTE:
+  826  00000378  60xx                   	bra.s noCookie
+  827                                   
+  828                                   .noSTE:
+  829                                   ; => here TT or FALCON
+  830  0000037A  08B800058007           	bclr.b	#5,$FFFF8007.w ; Mode STE on Falcon
+  831  00000380  08B800028007           	bclr.b	#2,$FFFF8007.w ; Blitter at 8Mhz
+  832                                   
+  833                                   ; Always switch off the cache on these machines.
+  834  00000386  103Axxxx               	move.b bCT60(pc),d0
+  835  0000038A  66xx                   	bne.s .noMovec
+  836                                   
+  837  0000038C  7000                   	moveq #0,d0
+  838  0000038E  4E7B0002               	dc.l $4e7b0002 ; movec d0,cacr ; switch off cache
+  839                                   .noMovec:
+  840                                   
 
 
-                                        Intro_46.S           Page 38      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 38      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  841                                   .noMovec:
-  842                                   
-  843  00000372  0C470003               	cmpi.w #3,d7
-  844  00000376  66xx                   	bne.s noCookie
-  845                                   
-  846                                   ; Here FALCON
-  847  00000378  3F3C0059               	move.w #$59,-(a7) ;check monitortype (falcon)
-  848  0000037C  4E4E                   	trap #14
-  849  0000037E  548F                   	addq.l #2,a7
-  850  00000380  41FAxxxx               	lea rgb50(pc),a0
-  851  00000384  5340                   	subq.w #1,d0
-  852  00000386  67xx                   	beq.s .setRegs
-  853  00000388  5540                   	subq.w #2,d0
-  854  0000038A  67xx                   	beq.s .setRegs
-  855  0000038C  41FAxxxx               	lea vga50(pc),a0
-  856                                   
-  857                                   .setRegs:
-  858  00000390  21D88282               	move.l (a0)+,$ffff8282.w
-  859  00000394  21D88286               	move.l (a0)+,$ffff8286.w
-  860  00000398  21D8828A               	move.l (a0)+,$ffff828a.w
-  861  0000039C  21D882A2               	move.l (a0)+,$ffff82a2.w
-  862  000003A0  21D882A6               	move.l (a0)+,$ffff82a6.w
-  863  000003A4  21D882AA               	move.l (a0)+,$ffff82aa.w
-  864  000003A8  31D8820A               	move.w (a0)+,$ffff820a.w
-  865  000003AC  31D882C0               	move.w (a0)+,$ffff82c0.w
-  866  000003B0  31D88266               	move.w (a0)+,$ffff8266.w
-  867  000003B4  42388260               	clr.b $ffff8260.w
-  868  000003B8  31D882C2               	move.w (a0)+,$ffff82c2.w
-  869  000003BC  31D88210               	move.w (a0)+,$ffff8210.w
+  841  00000392  0C470003               	cmpi.w #3,d7
+  842  00000396  66xx                   	bne.s noCookie
+  843                                   
+  844                                   ; Here FALCON
+  845  00000398  3F3C0059               	move.w #$59,-(a7) ;check monitortype (falcon)
+  846  0000039C  4E4E                   	trap #14
+  847  0000039E  548F                   	addq.l #2,a7
+  848  000003A0  41FAxxxx               	lea rgb50(pc),a0
+  849  000003A4  5340                   	subq.w #1,d0
+  850  000003A6  67xx                   	beq.s .setRegs
+  851  000003A8  5540                   	subq.w #2,d0
+  852  000003AA  67xx                   	beq.s .setRegs
+  853  000003AC  41FAxxxx               	lea vga50(pc),a0
+  854                                   
+  855                                   .setRegs:
+  856  000003B0  21D88282               	move.l (a0)+,$ffff8282.w
+  857  000003B4  21D88286               	move.l (a0)+,$ffff8286.w
+  858  000003B8  21D8828A               	move.l (a0)+,$ffff828a.w
+  859  000003BC  21D882A2               	move.l (a0)+,$ffff82a2.w
+  860  000003C0  21D882A6               	move.l (a0)+,$ffff82a6.w
+  861  000003C4  21D882AA               	move.l (a0)+,$ffff82aa.w
+  862  000003C8  31D8820A               	move.w (a0)+,$ffff820a.w
+  863  000003CC  31D882C0               	move.w (a0)+,$ffff82c0.w
+  864  000003D0  31D88266               	move.w (a0)+,$ffff8266.w
+  865  000003D4  42388260               	clr.b $ffff8260.w
+  866  000003D8  31D882C2               	move.w (a0)+,$ffff82c2.w
+  867  000003DC  31D88210               	move.w (a0)+,$ffff8210.w
+  868                                   
+  869                                   noCookie:
   870                                   
-  871                                   noCookie:
-  872                                   
-  873                                   ; Set res for all machines exept falcon or ct60
-  874  000003C0  0C38000301FE           	cmpi.b #3,$1fe.w
-  875  000003C6  67xx                   	beq.s letsGo
-  876                                   
-  877  000003C8  4267                   	clr.w -(a7) ;set stlow (st/tt)
-  878  000003CA  70FF                   	moveq #-1,d0
-  879  000003CC  2F00                   	move.l d0,-(a7)
-  880  000003CE  2F00                   	move.l d0,-(a7)
-  881  000003D0  3F3C0005               	move.w #5,-(a7)
-  882  000003D4  4E4E                   	trap #14
-  883  000003D6  4FEF000C               	lea 12(a7),a7
-  884                                   
-  885  000003DA  0C38000201FE           	cmpi.b #2,$1fe.w ; enough in case of TT
-  886  000003E0  67xx                   	beq.s letsGo
-  887                                   
-  888  000003E2  30380468               	move.w $468.w,d0
-  889                                   .vsync:
-  890  000003E6  B0780468               	cmp.w $468.w,d0
-  891  000003EA  67FA                   	beq.s .vsync
-  892                                   
-  893  000003EC  11FC0002820A           	move.b #2,$ffff820a.w
-  894  000003F2  42388260               	clr.b $ffff8260.w
-  895                                   
-  896                                   letsGo:
+  871                                   ; Set res for all machines exept falcon or ct60
+  872  000003E0  0C38000301FE           	cmpi.b #3,$1fe.w
+  873  000003E6  67xx                   	beq.s letsGo
+  874                                   
+  875  000003E8  4267                   	clr.w -(a7) ;set stlow (st/tt)
+  876  000003EA  70FF                   	moveq #-1,d0
+  877  000003EC  2F00                   	move.l d0,-(a7)
+  878  000003EE  2F00                   	move.l d0,-(a7)
+  879  000003F0  3F3C0005               	move.w #5,-(a7)
+  880  000003F4  4E4E                   	trap #14
+  881  000003F6  4FEF000C               	lea 12(a7),a7
+  882                                   
+  883  000003FA  0C38000201FE           	cmpi.b #2,$1fe.w ; enough in case of TT
+  884  00000400  67xx                   	beq.s letsGo
+  885                                   
+  886  00000402  30380468               	move.w $468.w,d0
+  887                                   .vsync:
+  888  00000406  B0780468               	cmp.w $468.w,d0
+  889  0000040A  67FA                   	beq.s .vsync
+  890                                   
+  891  0000040C  11FC0002820A           	move.b #2,$ffff820a.w
+  892  00000412  42388260               	clr.b $ffff8260.w
+  893                                   
+  894                                   letsGo:
+  895  00000416  4E75                   	rts
+  896                                   
 
 
-                                        Intro_46.S           Page 39      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 39      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 
 
-  897  000003F6  4E75                   	rts
-  898                                   
-  899                                   vga50:
-  900  000003F8  00170011               	dc.l $170011
-  901  000003FC  0002020E               	dc.l $2020E
-  902  00000400  000D0012               	dc.l $D0012
-  903  00000404  04EB04D1               	dc.l $4EB04D1
-  904  00000408  003F00F5               	dc.l $3F00F5
-  905  0000040C  041504E7               	dc.l $41504E7
-  906  00000410  0200                   	dc.w $0200
-  907  00000412  0186                   	dc.w $186
-  908  00000414  0000                   	dc.w $0
-  909  00000416  0005                   	dc.w $5
-  910  00000418  0050                   	dc.w $50
-  911                                   
-  912                                   rgb50:
-  913  0000041A  00300027               	dc.l $300027
-  914  0000041E  00070229               	dc.l $70229
-  915  00000422  001E002A               	dc.l $1e002a
-  916  00000426  02710265               	dc.l $2710265
-  917  0000042A  002F0081               	dc.l $2f0081
-  918  0000042E  0211026B               	dc.l $211026b
-  919  00000432  0200                   	dc.w $0200
-  920  00000434  0185                   	dc.w $185
-  921  00000436  0000                   	dc.w $0
-  922  00000438  0000                   	dc.w $0
-  923  0000043A  0050                   	dc.w $50
-  924                                   
-  925                                   bCT60:
-  926  0000043C  00                     	dc.b 0
-  927  0000043D  00                     	even
-  928                                   .endif
-  929                                   
-  930                                   ******************************************************************
-  931                                   	END                                                       // *
-unoptimized short branch
-unoptimized short branch
+  897                                   vga50:
+  898  00000418  00170011               	dc.l $170011
+  899  0000041C  0002020E               	dc.l $2020E
+  900  00000420  000D0012               	dc.l $D0012
+  901  00000424  04EB04D1               	dc.l $4EB04D1
+  902  00000428  003F00F5               	dc.l $3F00F5
+  903  0000042C  041504E7               	dc.l $41504E7
+  904  00000430  0200                   	dc.w $0200
+  905  00000432  0186                   	dc.w $186
+  906  00000434  0000                   	dc.w $0
+  907  00000436  0005                   	dc.w $5
+  908  00000438  0050                   	dc.w $50
+  909                                   
+  910                                   rgb50:
+  911  0000043A  00300027               	dc.l $300027
+  912  0000043E  00070229               	dc.l $70229
+  913  00000442  001E002A               	dc.l $1e002a
+  914  00000446  02710265               	dc.l $2710265
+  915  0000044A  002F0081               	dc.l $2f0081
+  916  0000044E  0211026B               	dc.l $211026b
+  917  00000452  0200                   	dc.w $0200
+  918  00000454  0185                   	dc.w $185
+  919  00000456  0000                   	dc.w $0
+  920  00000458  0000                   	dc.w $0
+  921  0000045A  0050                   	dc.w $50
+  922                                   
+  923                                   bCT60:
+  924  0000045C  00                     	dc.b 0
+  925  0000045D  00                     	even
+  926                                   .endif
+  927                                   
+  928                                   ******************************************************************
+  929                                   	END                                                       // *
 
 
-                                        Intro_46.S           Page 40      6:31:12 pm 6-Sep-2022        RMAC 2.2.07 (Win32)
+                                        Intro_46.S           Page 40      5:05:16 pm 9-May-2023        RMAC 2.2.07 (Win32)
 Symbol Table
 
-             .find 000000000000033C  t 
-            .flush 00000000000002F0  t 
-             .loop 0000000000000126  t 
-             .loop 000000000000030A  t 
-         .next_key 0000000000000074  t 
-        .noMegaSTE 0000000000000358  t 
-          .noMovec 0000000000000372  t 
-            .noSTE 000000000000035A  t 
-          .setRegs 0000000000000390  t 
-             .skip 0000000000000338  t 
-            .vsync 00000000000003E6  t 
-             .wait 00000000000002DE  t 
+             .find 000000000000035C  t 
+            .flush 0000000000000310  t 
+             .loop 0000000000000146  t 
+             .loop 000000000000032A  t 
+         .next_key 000000000000008A  t 
+        .noMegaSTE 0000000000000378  t 
+          .noMovec 0000000000000392  t 
+            .noSTE 000000000000037A  t 
+          .setRegs 00000000000003B0  t 
+             .skip 0000000000000358  t 
+            .vsync 0000000000000406  t 
+             .wait 00000000000002FE  t 
            BLITTER 0000000000000001  a 
      BOTTOM_BORDER 0000000000000001  a 
              Begin 0000000000000000  t 
    Default_palette 0000000000000000  d 
          ERROR_SYS 0000000000000001  a 
-        ESCAPE_PRG 000000000000007C  t 
-          EXIT_PRG 0000000000000080  t 
+        ESCAPE_PRG 0000000000000092  t 
+          EXIT_PRG 0000000000000096  t 
         FADE_INTRO 0000000000000001  a 
-      Init_screens 00000000000000BE  t 
-             Inits 0000000000000092  t 
+      Init_screens 00000000000000D4  t 
+             Inits 00000000000000A8  t 
              MUSIC 0000000000000020  d 
-        Multi_boot 00000000000002FC  t 
+        Multi_boot 000000000000031C  t 
       NB_OF_SCREEN 0000000000000001  a 
          NO_BORDER 0000000000000000  a 
         ONE_SCREEN 0000000000000000  a 
-         Old_Resol 00000000000002BE  t 
-        Old_Screen 00000000000002C2  t 
+         Old_Resol 00000000000002DE  t 
+        Old_Screen 00000000000002E2  t 
            PATTERN 0000000000010001  a 
            Palette 000000000000003A  b 
-        Restore_st 00000000000001FE  t 
+        Restore_st 000000000000021E  t 
           SEEMYVBL 0000000000000000  a 
     SIZE_OF_SCREEN 0000000000007D00  a 
          STF_INITS 0000000000000000  a 
           Save_all 0000000000000006  b 
-  Save_and_init_st 000000000000012E  t 
+  Save_and_init_st 000000000000014E  t 
          Save_rest 000000000000001A  b 
         Save_stack 0000000000000002  b 
             Screen 000000000000005A  b 
           TEST_STE 0000000000000001  a 
   TOPBOTTOM_BORDER 0000000000000001  a 
        TWO_SCREENS 0000000000000001  a 
-               Vbl 0000000000000106  t 
+               Vbl 0000000000000126  t 
              Vsync 0000000000000000  b 
-          Wait_vbl 000000000000011C  t 
-             bCT60 000000000000043C  t 
-      default_loop 000000000000005A  t 
-             flush 00000000000002EC  t 
-            letsGo 00000000000003F6  t 
-          noCookie 00000000000003C0  t 
-          physique 00000000000000FE  t 
-             rgb50 000000000000041A  t 
-    sendToKeyboard 00000000000002DE  t 
-             vga50 00000000000003F8  t 
+          Wait_vbl 000000000000013C  t 
+             bCT60 000000000000045C  t 
+      default_loop 0000000000000058  t 
+             flush 000000000000030C  t 
+            letsGo 0000000000000416  t 
+          noCookie 00000000000003E0  t 
+          physique 000000000000011E  t 
+             rgb50 000000000000043A  t 
+    sendToKeyboard 00000000000002FE  t 
+             vga50 0000000000000418  t 
 
