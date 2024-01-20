@@ -1,15 +1,15 @@
 ***************************************
 * // XXXXXXXX.PRG                  // *
 ***************************************
-* // Asm Intro Code Atari ST v0.46 // *
-* // by Zorro 2/NoExtra (06/09/22) // *
+* // Asm Intro Code Atari ST v0.47 // *
+* // by Zorro 2/NoExtra (23/11/23) // *
 ***************************************
 * // Original code :               // *
 * // Gfx logo      :               // *
 * // Gfx font      :               // *
 * // Music         : JEDI          // *
-* // Release date  : xx/xx/2022    // *
-* // Update date   : xx/xx/2022    // *
+* // Release date  : xx/xx/2023    // *
+* // Update date   : xx/xx/2023    // *
 ***************************************
   OPT c+ ; Case sensitivity ON        *
   OPT d- ; Debug OFF                  *
@@ -38,6 +38,7 @@ FADE_INTRO       equ 1           ; Fade White to black palette       *
 TEST_STE         equ 1           ; Code only for Atari STE machine   *
 STF_INITS        equ 0           ; STF compatibility MODE            *
 BLITTER          equ 1           ; Sync effect with Blitter          *
+CLEAN_TIMERS     equ 1           ; Clean Timers for...               *
 **********************************************************************
 *              Notes : 0 = I use it / 1 = no need !                  *
 **********************************************************************
@@ -68,12 +69,14 @@ Begin:
 	move.l  d0,Save_stack            ; Save adress of stack
 
  IFEQ TEST_STE
-	move.l	$5a0,a0                  ; Test if STE computer
-	cmp.l	#$0,a0                     ;
-	beq	EXIT_PRG                     ; No cookie_jar inside an old ST
-	move.l	$14(a0),d0               ;
-	cmp.l	#$0,d0                     ; _MCH=0 then it's an ST-STF-STFM
-	beq	EXIT_PRG                     ;
+	move #37,-(sp)                   ; Wait the beginning of the next VBL
+	trap #14
+	addq.l #2,sp
+	lea $ffff8209.w,a0               ; Lower byte of the video counter
+	moveq #74,d0                     ; Randomized value
+	move.b d0,(a0)                   ; Write it
+	cmp.b (a0),d0                    ; Equality test ?
+	bne.w EXIT_PRG                   ; Failed ? => it's a STFM hardware!
  ENDC
 
 	bsr	clear_bss                    ; Clean BSS stack
@@ -87,15 +90,20 @@ Begin:
  ENDC
 
  IFEQ BLITTER
-
-Sync_Blit macro                      ; Macro must be used with blitter effect outside the VBL for synchronisations
-.wait_blitter:                       ; Fast Blitter Reboot
-	bset	#7,$ffff8a3c.w
+SyncBlitterToRestart macro         ; Macro must be used with blitter effect outside the VBL for synchronisations
+	bset	#7,$ffff8a3c.w             ; Fast Blitter Restart
 	nop
-	bne.s	.wait_blitter
+	bne.s	*-4
 	endm
 
-	move.w	#$80,$ffff8a3c.w         ; Launch Blitter !
+.Clear_Blitter_instructions:
+	lea.l $ffff8a00.w,a1             ; 32 bytes halftone ram to clear !
+	rept 8
+	clr.l (a1)+
+	endr
+
+.Launch_Blitter:
+	move.w	#$80,$ffff8a3c.w         ; Launch the Blitter !
 	nop
 .restart:
 	bset	#7,$ffff8a3c.w
@@ -108,6 +116,10 @@ Sync_Blit macro                      ; Macro must be used with blitter effect ou
 **************************** MAIN LOOP ************************>
 
 default_loop:
+ IFEQ CLEAN_TIMERS
+	move.w	#$2300,SR
+ ENDC
+
 	bsr	Wait_vbl                     ; Waiting after the VBL
 
  IFEQ	SEEMYVBL
@@ -128,6 +140,10 @@ default_loop:
 	move    d0,-(sp)                 ;
 	move.b  (sp)+,d0                 ;
 	move.l  d0,$ffff8200.w           ;
+ ENDC
+
+ IFEQ CLEAN_TIMERS
+	move.w	#$2700,SR
  ENDC
 
  IFEQ	SEEMYVBL
@@ -241,11 +257,11 @@ physique:
 ***************************************************************
 Vbl:
  IFEQ BLITTER
-.sync_blitter:                     ; Sync Blitter with effect
+.sync_Blitter:                     ; Sync Blitter with effect
 	bclr.b	#7,$ffff8a3c.w
 	nop
 	btst.b	#7,$ffff8a3c.w
-	bne.s	.sync_blitter
+	bne.s	.sync_Blitter
  ENDC
 
 	st	Vsync                        ; Synchronisation
@@ -414,15 +430,17 @@ Save_and_init_st:
 	bsr	INPUT_TRACE_ERROR            ; Save vectors list
  ENDC
 
+ IFEQ CLEAN_TIMERS
 * Available interrupt commands for music if needed...
-;	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
-;	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
-;	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
-;	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
-;	clr.b $fffffa19.w                ; Stop Timer A
-;	clr.b $fffffa1b.w                ; Stop Timer B
-;	clr.b $fffffa21.w                ; Timer B data at zero
-;	clr.b $fffffa1d.w                ; Stop Timer C & D
+	clr.b $fffffa07.w                ; Interrupt enable A (Timer-A & B)
+	clr.b $fffffa09.w                ; Interrupt enable B (Timer-C & D)
+	clr.b $fffffa13.w                ; Interrupt mask A (Timer-A & B)
+	clr.b $fffffa15.w                ; Interrupt mask B (Timer-C & D)
+	clr.b $fffffa19.w                ; Stop Timer A
+	clr.b $fffffa1b.w                ; Stop Timer B
+	clr.b $fffffa21.w                ; Timer B data at zero
+	clr.b $fffffa1d.w                ; Stop Timer C & D
+ ENDC
 
  IFEQ	BOTTOM_BORDER
 	sf $fffffa21.w                   ; Timer B data (number of scanlines to next interrupt)
@@ -451,6 +469,11 @@ Save_and_init_st:
 
  IFEQ	NO_BORDER
 * // Code here....
+ ENDC
+
+ IFEQ BLITTER
+	move	$ffff8264.w,Old_Shift+2    ; Save Screen Shifting
+	move	$ffff820e.w,Old_Modulo+2   ; Save Screen Modulo
  ENDC
 
 	stop #$2300                      ; Interrupts ON
@@ -544,6 +567,13 @@ Restore_st:
 	bsr	sendToKeyboard               ;
 
 	bsr	flush                        ; Clear buffer keyboard
+
+ IFEQ BLITTER
+Old_Modulo:
+	move	#0,$ffff820e.w             ; Restore Screen Modulo
+Old_Shift:
+	move	#0,$ffff8264.w             ; Restore Old Shift
+ ENDC
 
 Old_Resol:                         ; Restore Old Screen & Resolution
 	move	#0,-(sp)                   ;

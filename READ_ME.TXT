@@ -48,14 +48,14 @@ For screens are properly cleared on 4 plans.
 
 b) Screen used :
 ----------------
-You can set parameter NB_OF_SCREEN to use one (option ONE_SCREEN activated) or two screens (option TWO_SCREENS activated) in your demo. Defaut set with physical et logical Screens.
+You can set parameter NB_OF_SCREEN to use one (option ONE_SCREEN activated) or two screens (option TWO_SCREENS activated) in your demo. Defaut set with physical and logical screens which avoids flickering effects between them.
 
 c) Time Cpu :
 -------------
 It allows you to see the time taken (PURPLE color) and the remaining time left in BLACK color pressed by right ALTERNATE key.
-SEEMYVBL         equ 0 SEEMYVBL equ 0
+SEEMYVBL         equ 0
 
-It's advisable to set it to "1" when the program is finished to release...
+It's advisable to set it to "1" when the program is over to release...
 
 d) Errors systems :
 -------------------
@@ -74,21 +74,28 @@ FADE_INTRO equ 1
 
 f) Test the STE hardware :
 --------------------------
-Block the launch of the program on a STF computers and initializes as part Falcon for better compatibility.
+Allows you to detect if you are on a SITE, otherwise you exit the program.
 TEST_STE         equ 1
 
 g) Top compatibility !
 ----------------------
-I added the compatibility mode STF for FALCON by Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
+I added the compatibility mode STF for STE-MSTE-TT-FALCON hardware.
+STF_INITS         equ 0
+
+Source code from Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
 
 h) BLITTER
 ----------
-Permit to synchronize the Blitter with the VBL.
-Add this asembler part of code after calling the Blitter :
-.wait_blitter:
-	bset	#7,$ffff8a3c.w         ; Réamorcage rapide du Blitter
-	nop
-	bne.s	.wait_blitter
+Launch the Blitter and permit to synchronize the Blitter with the VBL.
+Add this macro SyncBlitterToRestart to your code after calling the Blitter.
+Bonus: saves screen features following use of Blitter. (Shifting and Modulo)
+
+i) Timer rules
+--------------
+If you want to use timers like A-B-C-D you can clear all timer at the beginning.
+CLEAN_TIMERS     equ 1
+
+Also allows you to synchronize effects in the main loop zone.
 
 2 / Key Features :
 ==================
@@ -119,15 +126,15 @@ Safety :
 ===========================
 To implement the code inside the template:
 a) You must select the type of OVERSCAN used, we use the default parameter NO_BORDER,
-b) Implement the code called in the main loop, starting at line 110,
-c) Added your routines from line 581,
-d) Added data in the DATA section from line 593,
-e) Added bootable data in the BSS section from line 608.
+b) Implement the code called in the main loop, starting at line 118,
+c) Added your routines from line 619,
+d) Added data in the DATA section from line 631,
+e) Added bootable data in the BSS section from line 646.
 Timer option :
 --------------
-a) Add a routine HBL with the VBL: we must add the initialization Timers and calls the HBL between lines 445,
-b) You can add code to the VBL from line 266,
-c) Declare the routine code from HBL line 294.
+a) Add a routine HBL with the VBL: we must add the initialization Timers and calls the HBL between lines 471,
+b) You can add code to the VBL from line 290,
+c) Declare the routine code from HBL line 318.
 
 4 / Examples :
 ==============
@@ -159,4 +166,4 @@ Voila ! Voila!
 
 Frédéric Sagez aka Zorro 2^NoExtra.
 
-Update le 6/12/2021.
+Update the 20/01/2024.

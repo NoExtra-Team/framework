@@ -48,7 +48,7 @@ Pour que les écrans soient bien éffacés sur 4 plans.
 
 b) Nombre d'écrans :
 --------------------
-Le parametre NB_OF_SCREEN permet d'utiliser un (option ONE_SCREEN activée) ou deux écrans (option TWO_SCREENS activée) dans votre démo. Par défaut il utilise un ecran physique et logique ce qui évite des effets de clipping.
+Le parametre NB_OF_SCREEN permet d'utiliser un (option ONE_SCREEN activée) ou deux écrans (option TWO_SCREENS activée) dans votre démo. Par défaut il utilise un ecran physique et logique ce qui évite des effets de vacillement entre les écrans.
 
 c) Temps Cpu :
 --------------
@@ -74,22 +74,28 @@ FADE_INTRO       equ 1
 
 f) Teste du STE :
 -----------------
-Permet de bloquer le lancement du programme sur un STF et initialise aussi la partie Falcon pour une meilleure compatibilité.
+Permet de détecter si on est sur un STE, sinon on sort du programme.
 TEST_STE         equ 1
 
 g) Top comptabilité !
 ---------------------
-J'ai rajouté dans le Framework la retro-comptabilité pour FALCON par Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
+J'ai ajouté le mode "compatibilité" STF pour les machines STE-MSTE-TT- FALCON
+STF_INITS         equ 0
+
+Source code from Arnaud Carré - http://leonard.oxg.free.fr/SainT/saint.html
 
 h) BLITTER
 ----------
-Permet de synchronisé le Blitter avec la VBL.
-Code à rajouter à la fin de l'appel du Blitter d'un effet :
-.wait_blitter:
-	bset	#7,$ffff8a3c.w         ; Réamorcage rapide du Blitter
-	nop
-	bne.s	.wait_blitter
+Démarre le Blitter et permet la synchronisation le Blitter avec la VBL.
+Ajouter la macro SyncBlitterToRestart à la fin de l'appel du Blitter d'un effet.
+Bonus : sauvegarde des particularités des écrans suivant l'utilisation du Blitter. (Shifting and Modulo)
 
+i) Timer rules
+--------------
+Si vous souhaitez utiliser les Timers A-B-C-D, vous pouvez les effacer au début du programme.
+CLEAN_TIMERS     equ 1
+
+Permet aussi de synchroniser des effets dans une zone de boucle proncipale.
 
 2/ Principales fonctionnalités :
 ================================
@@ -121,15 +127,15 @@ Sécurité:
 ============================
 Pour implémenter du code dans le template :
 a) Il faut sélectionner le type d'OVERSCAN utilisé, par défaut on utilisera le paramètre NO_BORDER,
-b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 110,
-c) Ajouté vos routines à partir de la ligne 581,
-d) Ajouté vos données dans la section DATA à partir de la ligne 593,
-e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 608.
+b) Implémenter le code appelé dans la boucle principale, à partir de la ligne 118,
+c) Ajouté vos routines à partir de la ligne 619,
+d) Ajouté vos données dans la section DATA à partir de la ligne 631,
+e) Ajouté vos données initialisables dans la section BSS à partir de la ligne 646.
 Option Timer :
 --------------
-a) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 445,
-b) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 266,
-c) Déclarer le code de la routine HBL à partir de la ligne 294.
+a) Rajouter une routine HBL avec la VBL : il faut ajouter l'initialisation des Timers et les appels de la HBL entre les lignes 471,
+b) Vous pouvez ajouter du code dans la VBL, à partir de la ligne 290,
+c) Déclarer le code de la routine HBL à partir de la ligne 318.
 
 4/ Des exemples :
 =================
@@ -161,4 +167,4 @@ Voila !
 
 Frédéric Sagez aka Zorro 2^NoExtra.
 
-Update the 6 dec. 2021.
+Update le 20/01/2024.
